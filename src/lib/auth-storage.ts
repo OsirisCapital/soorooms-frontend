@@ -49,3 +49,6 @@ export function clearTokens() {
   // Le mode de compte (voyageur/hôte) est propre à la session.
   localStorage.removeItem("sooroms.account");
 }
+export function getTokenPhone(): string | null {
+  return getTokenPayload()?.phone ?? null;
+}
