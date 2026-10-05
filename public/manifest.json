@@ -1,0 +1,13 @@
+{
+  "name": "SòôRooms",
+  "short_name": "SòôRooms",
+  "description": "Hébergez. Voyagez. Vivez. — Réservation de logements au Cameroun.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf6f0",
+  "theme_color": "#faf6f0",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

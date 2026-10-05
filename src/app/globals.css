@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  /* Tokens repris directement des maquettes SòôRooms — fond crème chaud,
+     terracotta en accent d'action, teal profond pour les titres et le
+     texte de marque. Pas de bascule sombre automatique : l'identité
+     visuelle du produit est délibérément claire et chaleureuse. */
+  --color-cream: #faf6f0;
+  --color-cream-soft: #f2ece2;
+  --color-terracotta: #c1622e;
+  --color-terracotta-dark: #a34f22;
+  --color-teal: #1e4a4a;
+  --color-teal-600: #2c6363;
+  --color-teal-100: #e3efed;
+  --color-ink: #1c2b2b;
+  --color-border: #d6e3e0;
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-cream-soft: var(--color-cream-soft);
+  --color-terracotta: var(--color-terracotta);
+  --color-terracotta-dark: var(--color-terracotta-dark);
+  --color-teal: var(--color-teal);
+  --color-teal-600: var(--color-teal-600);
+  --color-teal-100: var(--color-teal-100);
+  --color-ink: var(--color-ink);
+  --color-border: var(--color-border);
+  --font-display: var(--font-poppins);
+  --font-body: var(--font-inter);
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display), var(--font-body), system-ui, sans-serif;
+}
+
+/* Carrousels horizontaux : défilement tactile sans barre visible. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
