@@ -18,6 +18,15 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Le serveur n'a pas pu répondre (par opposition à « il a répondu et a refusé »).
+ * Vrai pour une erreur réseau (le navigateur n'a obtenu aucune réponse exploitable, typique d'un
+ * backend gratuit qui se réveille) et pour les erreurs 502/503/504 d'un intermédiaire.
+ */
+export function isServerUnavailable(error: unknown): boolean {
+  return !(error instanceof ApiError) || error.status >= 502;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
