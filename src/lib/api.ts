@@ -49,6 +49,7 @@ export interface AuthTokens {
 export interface RegisterPayload {
   fullName: string;
   phone: string;
+  email: string;
   password: string;
 }
 
@@ -513,6 +514,8 @@ export interface Me {
   id: string;
   fullName: string;
   email: string | null;
+  /** Renseignée une fois l'adresse prouvée (lien reçu par e-mail, ou garantie par Google). */
+  emailVerifiedAt: string | null;
   phone: string;
   role: "TRAVELER" | "HOST" | "ADMIN";
   kycStatus: KycStatus;
@@ -636,7 +639,7 @@ export function getUploadSignature(purpose: UploadPurpose) {
 
 export interface ForgotPasswordResponse {
   message: string;
-  /** Présent uniquement hors production : aucun SMS n'est envoyé, le jeton est renvoyé pour tester. */
+  /** Présent uniquement hors production : le jeton est renvoyé pour tester sans boîte e-mail. */
   devResetToken?: string;
 }
 
@@ -651,5 +654,29 @@ export function resetPassword(token: string, newPassword: string) {
   return request<{ message: string }>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify({ token, newPassword }),
+  });
+}
+
+// ---------------------------------------------------------------------
+// Adresse e-mail — /auth/verify-email, /auth/resend-verification, /auth/email
+// ---------------------------------------------------------------------
+
+/** Public : le lien reçu par e-mail s'ouvre souvent sur un autre appareil que celui de l'inscription. */
+export function verifyEmail(token: string) {
+  return request<{ message: string }>("/auth/verify-email", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+export function resendVerification() {
+  return authRequest<{ message: string }>("/auth/resend-verification", { method: "POST" });
+}
+
+/** Ajoute ou remplace l'adresse du compte ; le mot de passe actuel est exigé. */
+export function setEmail(email: string, currentPassword: string) {
+  return authRequest<{ message: string; emailSent: boolean }>("/auth/email", {
+    method: "PUT",
+    body: JSON.stringify({ email, currentPassword }),
   });
 }

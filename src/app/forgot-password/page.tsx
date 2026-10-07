@@ -40,10 +40,10 @@ export default function ForgotPasswordPage() {
             <p className="rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">{result.message}</p>
 
             {result.devResetToken ? (
-              // Hors production, le backend renvoie le jeton au lieu d'envoyer un SMS.
+              // Hors production, le backend renvoie aussi le jeton, pour tester sans boîte e-mail.
               <div className="rounded-2xl border border-[var(--color-terracotta)] bg-white p-4 text-sm text-slate-600">
                 <p className="font-semibold text-[var(--color-terracotta)]">Mode développement</p>
-                <p className="mt-1">Aucun SMS n&apos;est envoyé : vous pouvez continuer directement.</p>
+                <p className="mt-1">Le jeton est affiché ici pour tester : vous pouvez continuer directement.</p>
                 <Link
                   href={`/reset-password?token=${encodeURIComponent(result.devResetToken)}`}
                   className="mt-3 inline-block font-semibold text-[var(--color-teal)] underline"
@@ -52,9 +52,9 @@ export default function ForgotPasswordPage() {
                 </Link>
               </div>
             ) : (
-              <Link href="/reset-password" className="text-center text-sm font-semibold text-[var(--color-teal)] underline">
-                J&apos;ai reçu mon code
-              </Link>
+              <p className="text-center text-sm text-slate-500">
+                Consultez votre boîte de réception, sans oublier les courriers indésirables. Le lien est valable 30 minutes.
+              </p>
             )}
 
             <Link href="/login" className="text-center text-sm text-slate-500">
@@ -64,7 +64,8 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <p className="mt-1 text-center text-slate-500">
-              Indiquez le numéro de votre compte pour recevoir de quoi choisir un nouveau mot de passe.
+              Indiquez le numéro de votre compte. Si une adresse e-mail vérifiée y est associée, nous vous enverrons un
+              lien pour choisir un nouveau mot de passe.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
@@ -76,7 +77,8 @@ export default function ForgotPasswordPage() {
                 required
               />
               <p className="-mt-2 text-xs text-slate-500">
-                Saisissez le numéro de votre compte (avec ou sans l&apos;indicatif +237).
+                Saisissez le numéro de votre compte (avec ou sans l&apos;indicatif +237). Sans adresse e-mail vérifiée sur
+                le compte, aucun lien ne peut être envoyé : contactez alors le support.
               </p>
 
               {error && <p className="text-sm text-red-500">{error}</p>}

@@ -13,6 +13,7 @@ import { saveTokens } from "@/lib/auth-storage";
 export default function RegisterPage() {
   const router = useRouter();
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +26,7 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      const tokens = await registerUser({ fullName, phone, password });
+      const tokens = await registerUser({ fullName, email: email.trim(), phone, password });
       saveTokens(tokens);
       router.push("/home");
     } catch (err) {
@@ -69,12 +70,20 @@ export default function RegisterPage() {
             minLength={2}
             required
           />
-          {/*
-            Ajouté par rapport aux maquettes (qui montrent un e-mail) : le
-            téléphone reste l'identifiant technique du backend, décision
-            produit prise avec les maquettes. Le backend n'accepte pas
-            encore d'e-mail à l'inscription — voir RegisterDto.
-          */}
+          <TextField
+            type="email"
+            placeholder="Adresse e-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            icon={<MailIcon />}
+            autoComplete="email"
+            required
+          />
+          <p className="-mt-2 text-xs text-slate-500">
+            Nous vous enverrons un lien pour confirmer cette adresse. Elle vous servira à retrouver votre compte si vous
+            oubliez votre mot de passe.
+          </p>
+          {/* Le téléphone reste l'identifiant de connexion. */}
           <TextField
             type="tel"
             placeholder="Téléphone (+237...)"
@@ -141,6 +150,15 @@ function UserIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
     </svg>
   );
 }
