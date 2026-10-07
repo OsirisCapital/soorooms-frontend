@@ -22,6 +22,7 @@ import {
 } from "@/lib/api";
 import { PROPERTY_STATUS_LABEL, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
+import { useMe } from "@/lib/use-me";
 import { ACCEPT_ATTRIBUTE, uploadErrorMessage, uploadFile } from "@/lib/upload";
 
 export default function ManagePropertyPage() {
@@ -79,7 +80,10 @@ const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : "Un
 function PublishCard({ property, reload }: CardProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const me = useMe();
   const noRoom = property.rooms.length === 0;
+  // Le serveur l'impose de toute façon ; on prévient ici pour ne pas laisser cliquer dans le vide.
+  const emailMissing = me !== null && !me.emailVerifiedAt;
 
   async function publish() {
     setError(null);
@@ -108,20 +112,34 @@ function PublishCard({ property, reload }: CardProps) {
       ) : (
         <>
           <p className="text-sm text-slate-600">
-            Ce logement n&apos;est pas encore visible. La publication nécessite au moins une chambre et une vérification
-            d&apos;identité (KYC) approuvée.
+            Ce logement n&apos;est pas encore visible. La publication nécessite au moins une chambre, une adresse
+            e-mail vérifiée et une vérification d&apos;identité (KYC) approuvée.
           </p>
+          {emailMissing && (
+            <p className="mt-2 text-sm text-[var(--color-terracotta-dark)]">
+              Votre adresse e-mail n&apos;est pas encore vérifiée.{" "}
+              <Link href="/profil/informations" className="font-semibold underline">
+                Vérifier mon adresse
+              </Link>
+            </p>
+          )}
           {noRoom && <p className="mt-2 text-sm text-slate-500">Ajoutez d&apos;abord une chambre ci-dessous.</p>}
           {error && (
             <p className="mt-3 text-sm text-red-500">
               {error}{" "}
-              <Link href="/profil/parametres" className="font-semibold underline">
-                Voir l&apos;état de ma vérification
-              </Link>
+              {/e-mail/i.test(error) ? (
+                <Link href="/profil/informations" className="font-semibold underline">
+                  Ouvrir Mes informations
+                </Link>
+              ) : (
+                <Link href="/profil/parametres" className="font-semibold underline">
+                  Voir l&apos;état de ma vérification
+                </Link>
+              )}
             </p>
           )}
           <div className="mt-4">
-            <Button onClick={publish} loading={busy} disabled={noRoom}>
+            <Button onClick={publish} loading={busy} disabled={noRoom || emailMissing}>
               Publier le logement
             </Button>
           </div>
