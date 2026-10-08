@@ -202,7 +202,7 @@ function refreshSession(): Promise<boolean> {
   return refreshInFlight;
 }
 
-async function authRequest<T>(path: string, options: RequestInit = {}, canRetry = true): Promise<T> {
+export async function authRequest<T>(path: string, options: RequestInit = {}, canRetry = true): Promise<T> {
   try {
     return await request<T>(path, {
       ...options,

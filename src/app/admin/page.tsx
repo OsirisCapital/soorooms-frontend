@@ -1,252 +1,86 @@
 "use client";
 
 import { useState } from "react";
-import { AppShell } from "@/components/AppShell";
-import { Button } from "@/components/ui/Button";
-import {
-  ApiError,
-  approveKyc,
-  getKycDocumentLink,
-  listDisputes,
-  listPendingKyc,
-  rejectKyc,
-  type AdminDispute,
-  type PendingKyc,
-} from "@/lib/api";
-import { formatDay, formatFcfa } from "@/lib/booking-labels";
+import { AdminFrame } from "@/components/admin/AdminFrame";
+import { BarList, DailyChart, StatTile } from "@/components/admin/charts";
+import { getAdminOverview, getAdminTimeseries } from "@/lib/admin-api";
+import { formatFcfa } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
-import { useMe } from "@/lib/use-me";
 
-export default function AdminPage() {
-  const me = useMe();
+const RANGES = [7, 30, 90] as const;
+const TEAL = "#1e4a4a";
+const TERRACOTTA = "#c1622e";
+
+const BOOKING_STATUS_LABEL: Record<string, string> = {
+  NEGOTIATING: "En négociation",
+  PENDING_PAYMENT: "En attente de paiement",
+  CONFIRMED_ESCROW: "Payées (fonds sécurisés)",
+  COMPLETED: "Terminées",
+  DISPUTED: "En litige",
+  CANCELLED: "Annulées",
+};
+
+function Dashboard() {
+  const [range, setRange] = useState<(typeof RANGES)[number]>(30);
+  const overview = useAsyncData("admin-overview", getAdminOverview);
+  const series = useAsyncData(`admin-series-${range}`, () => getAdminTimeseries(range));
+
+  if (overview.loading) return <div className="h-48 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />;
+  if (overview.error || !overview.data) return <p className="text-sm text-red-500">{overview.error ?? "Statistiques indisponibles."}</p>;
+
+  const o = overview.data;
+  const delta = o.users.newLast7Days - o.users.previous7Days;
+  const deltaText = delta === 0 ? "Stable par rapport à la semaine précédente" : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} par rapport à la semaine précédente`;
+  const activeProps = o.properties.byStatus.ACTIVE;
 
   return (
-    <AppShell title="Administration" backHref="/profil">
-      {me == null ? (
-        <div className="h-24 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
-      ) : me.role !== "ADMIN" ? (
-        <p className="rounded-2xl bg-white p-6 text-center text-slate-600 shadow-sm">Cette page est réservée aux administrateurs.</p>
+    <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-2 gap-3">
+        <StatTile hero label="Volume réservé" value={formatFcfa(o.money.volumeBooked)} hint={`${formatFcfa(o.money.heldInEscrow)} sécurisés en attente · commissions ${formatFcfa(o.money.platformFeesEarned)}`} />
+        <StatTile label="Utilisateurs" value={o.users.total.toLocaleString("fr-FR")} hint={`+${o.users.newLast7Days} sur 7 jours. ${deltaText}`} />
+        <StatTile label="Hôtes" value={o.users.hosts.toLocaleString("fr-FR")} hint={`${o.users.travelers.toLocaleString("fr-FR")} voyageurs`} />
+        <StatTile label="Logements actifs" value={activeProps.toLocaleString("fr-FR")} hint={`${o.properties.total} au total`} />
+        <StatTile label="Réservations" value={o.bookings.total.toLocaleString("fr-FR")} />
+        <StatTile label="Identités à examiner" value={o.kyc.pending.toLocaleString("fr-FR")} href="/admin/accreditations" tone={o.kyc.pending > 0 ? "alert" : "default"} hint={o.kyc.pending > 0 ? "À traiter" : "Rien en attente"} />
+        <StatTile label="Litiges ouverts" value={o.bookings.disputed.toLocaleString("fr-FR")} href="/admin/litiges" tone={o.bookings.disputed > 0 ? "alert" : "default"} hint={o.bookings.disputed > 0 ? "À traiter" : "Aucun litige"} />
+      </div>
+
+      <div role="group" aria-label="Période des graphiques" className="flex gap-2">
+        {RANGES.map((r) => (
+          <button
+            key={r}
+            type="button"
+            aria-pressed={range === r}
+            onClick={() => setRange(r)}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${range === r ? "bg-[var(--color-teal)] text-white" : "border border-[var(--color-border)] bg-white text-[var(--color-ink)]"}`}
+          >
+            {r} jours
+          </button>
+        ))}
+      </div>
+
+      {series.loading ? (
+        <div className="h-48 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
+      ) : series.error || !series.data ? (
+        <p className="text-sm text-red-500">{series.error ?? "Courbes indisponibles."}</p>
       ) : (
-        <>
-          <KycSection />
-          <DisputesSection />
-        </>
+        <div className="flex flex-col gap-3">
+          <DailyChart title="Inscriptions" unit="inscriptions" kind="bar" color={TEAL} days={series.data.days} values={series.data.signups} />
+          <DailyChart title="Réservations créées" unit="réservations" kind="bar" color={TERRACOTTA} days={series.data.days} values={series.data.bookings} />
+          <DailyChart title="Volume réservé" unit="FCFA" kind="line" color={TERRACOTTA} days={series.data.days} values={series.data.volume} format={(v) => v.toLocaleString("fr-FR")} />
+        </div>
       )}
-    </AppShell>
-  );
-}
 
-/** Seuls les liens http(s) sont rendus cliquables : ces URL sont saisies par les utilisateurs. */
-function safeHttpUrl(value: string | null) {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : "Une erreur est survenue. Réessayez.");
-
-/**
- * Les documents KYC sont privés : le lien est demandé au serveur au moment du clic
- * (il expire en quelques minutes) et chaque consultation est journalisée côté serveur.
- */
-function DocLink({ label, documentId, kind }: { label: string; documentId: string; kind: "id-card" | "proof-of-address" }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fallbackHref, setFallbackHref] = useState<string | null>(null);
-
-  async function open() {
-    setError(null);
-    setFallbackHref(null);
-    setBusy(true);
-    // L'onglet est ouvert tout de suite, pendant le geste de l'utilisateur : les navigateurs
-    // mobiles bloquent une ouverture faite après une attente réseau.
-    const tab = window.open("", "_blank");
-    if (tab) tab.opener = null;
-    try {
-      const href = safeHttpUrl((await getKycDocumentLink(documentId, kind)).url);
-      if (!href) throw new Error("Lien non valide.");
-      if (tab) tab.location.href = href;
-      else setFallbackHref(href); // fenêtre bloquée : on affiche le lien à toucher
-    } catch (err) {
-      tab?.close();
-      setError(messageOf(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={open}
-        disabled={busy}
-        className="block text-left text-sm font-semibold text-[var(--color-terracotta)] underline disabled:opacity-60"
-      >
-        {busy ? "Ouverture…" : label}
-      </button>
-      {fallbackHref && (
-        <a href={fallbackHref} target="_blank" rel="noopener noreferrer" className="mt-1 block text-sm text-[var(--color-teal)] underline">
-          Ouvrir le document
-        </a>
-      )}
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      <BarList
+        title="Réservations par statut"
+        color={TEAL}
+        rows={Object.entries(o.bookings.byStatus).map(([status, value]) => ({ label: BOOKING_STATUS_LABEL[status] ?? status, value }))}
+      />
+      <BarList title="Logements par ville" color={TERRACOTTA} rows={o.properties.topCities.map((c) => ({ label: c.city, value: c.count }))} />
     </div>
   );
 }
 
-// --- KYC en attente ---------------------------------------------------------
-
-function KycSection() {
-  const { data, loading, error } = useAsyncData("admin-kyc", listPendingKyc);
-  const [done, setDone] = useState<string[]>([]);
-  const items = (data ?? []).filter((item) => !done.includes(item.id));
-
-  return (
-    <section>
-      <h2 className="text-xl font-bold text-[var(--color-teal)]">Vérifications d&apos;identité{data ? ` (${items.length})` : ""}</h2>
-      {loading ? (
-        <div className="mt-3 h-32 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
-      ) : error ? (
-        <p className="mt-3 text-sm text-red-500">{error}</p>
-      ) : items.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-5 text-center text-sm text-slate-600 shadow-sm">Aucune demande en attente.</p>
-      ) : (
-        <ul className="mt-3 flex flex-col gap-3">
-          {items.map((item) => (
-            <KycCard key={item.id} item={item} onDecided={() => setDone((prev) => [...prev, item.id])} />
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-function KycCard({ item, onDecided }: { item: PendingKyc; onDecided: () => void }) {
-  const [rejecting, setRejecting] = useState(false);
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function decide(action: () => Promise<unknown>) {
-    setError(null);
-    setBusy(true);
-    try {
-      await action();
-      onDecided();
-    } catch (err) {
-      setError(messageOf(err));
-      setBusy(false);
-    }
-  }
-
-  return (
-    <li className="rounded-2xl bg-white p-4 shadow-sm">
-      <p className="font-display font-semibold text-[var(--color-teal)]">{item.fullName}</p>
-      <p className="text-sm text-slate-600">
-        {item.phone}
-        {item.email ? ` · ${item.email}` : ""}
-      </p>
-      {item.document ? (
-        <>
-          <p className="mt-1 text-xs text-slate-500">Envoyé le {formatDay(item.document.submittedAt)}</p>
-          <div className="mt-3 flex flex-col gap-1">
-            <DocLink label="Pièce d'identité" documentId={item.document.id} kind="id-card" />
-            {item.document.proofOfAddressUrl && (
-              <DocLink label="Justificatif de domicile" documentId={item.document.id} kind="proof-of-address" />
-            )}
-          </div>
-        </>
-      ) : (
-        <p className="mt-2 text-sm text-slate-500">Aucun document trouvé.</p>
-      )}
-
-      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-
-      {rejecting ? (
-        <div className="mt-4 flex flex-col gap-3">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={3}
-            placeholder="Motif du refus, visible par l'utilisateur (5 caractères minimum)"
-            className="w-full rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3 text-sm focus:border-[var(--color-teal)] focus:outline-none"
-          />
-          <Button variant="outline" disabled={busy || note.trim().length < 5} onClick={() => decide(() => rejectKyc(item.id, note.trim()))}>
-            Confirmer le refus
-          </Button>
-          <button type="button" onClick={() => setRejecting(false)} disabled={busy} className="text-sm text-slate-500">
-            Annuler
-          </button>
-        </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-3">
-          <Button
-            loading={busy}
-            onClick={() => {
-              if (window.confirm(`Approuver la vérification de ${item.fullName} ?`)) decide(() => approveKyc(item.id));
-            }}
-          >
-            Approuver
-          </Button>
-          <Button variant="outline" onClick={() => setRejecting(true)} disabled={busy}>
-            Refuser
-          </Button>
-        </div>
-      )}
-    </li>
-  );
-}
-
-// --- Litiges (lecture seule) --------------------------------------------------
-
-function DisputesSection() {
-  const { data, loading, error } = useAsyncData("admin-disputes", listDisputes);
-
-  return (
-    <section className="mt-10">
-      <h2 className="text-xl font-bold text-[var(--color-teal)]">Litiges ouverts{data ? ` (${data.length})` : ""}</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Les fonds restent bloqués en séquestre. La résolution (remboursement ou reversement) arrivera avec l&apos;intégration du
-        paiement.
-      </p>
-      {loading ? (
-        <div className="mt-3 h-32 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
-      ) : error ? (
-        <p className="mt-3 text-sm text-red-500">{error}</p>
-      ) : !data || data.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-white p-5 text-center text-sm text-slate-600 shadow-sm">Aucun litige ouvert.</p>
-      ) : (
-        <ul className="mt-3 flex flex-col gap-3">
-          {data.map((dispute: AdminDispute) => (
-            <li key={dispute.id} className="rounded-2xl bg-white p-4 shadow-sm">
-              <p className="font-display font-semibold text-[var(--color-teal)]">{dispute.room.property.title}</p>
-              <p className="text-sm text-slate-600">
-                {dispute.room.name} · {dispute.room.property.city}
-              </p>
-              <p className="mt-1 text-sm text-slate-600">
-                {formatDay(dispute.checkInDate)} → {formatDay(dispute.checkOutDate)}
-                {dispute.totalPrice != null ? ` · ${formatFcfa(dispute.totalPrice)}` : ""}
-              </p>
-              <p className="mt-2 text-sm text-[var(--color-ink)]">
-                <strong>Voyageur :</strong> {dispute.traveler.fullName} ({dispute.traveler.phone})
-              </p>
-              <p className="mt-2 rounded-xl bg-[var(--color-cream)] px-3 py-2 text-sm text-[var(--color-ink)]">
-                {dispute.disputeReason ?? "Aucun motif renseigné."}
-              </p>
-              {dispute.escrowVault && (
-                <p className="mt-2 text-xs text-slate-500">
-                  Séquestre : {formatFcfa(dispute.escrowVault.amountHeld)} ({dispute.escrowVault.status})
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
+export default function AdminDashboardPage() {
+  return <AdminFrame permission="dashboard.view">{() => <Dashboard />}</AdminFrame>;
 }
