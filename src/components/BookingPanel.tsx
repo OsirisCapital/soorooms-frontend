@@ -17,8 +17,30 @@ import {
   type OfferStatus,
 } from "@/lib/api";
 import { BOOKING_STATUS_LABEL, formatDay, formatFcfa, nightsBetween } from "@/lib/booking-labels";
+import { rememberPendingPayment, usePaymentReturn, type PaymentReturnState } from "@/lib/use-payment-return";
 
 export type Viewer = "TRAVELER" | "HOST";
+
+/** Message affiché pendant et après la vérification du paiement au retour du voyageur. */
+function paymentReturnMessage(state: PaymentReturnState): { text: string; tone: "info" | "error" } | null {
+  switch (state.phase) {
+    case "verifying":
+      if (state.waking) return { text: "Le serveur se réveille, cela peut prendre jusqu'à une minute. Ne fermez pas cette page.", tone: "info" };
+      if (state.pending) return { text: "Votre paiement est en cours de traitement par l'opérateur. Nous continuons de vérifier…", tone: "info" };
+      return { text: "Vérification de votre paiement auprès de Notch Pay…", tone: "info" };
+    case "pending":
+      return {
+        text: "Le paiement n'est pas encore confirmé. Si vous l'avez validé sur votre téléphone, patientez un instant puis touchez « J'ai payé — vérifier ».",
+        tone: "info",
+      };
+    case "failed":
+      return { text: "Le paiement n'a pas abouti. Vous pouvez réessayer avec le bouton « Payer ».", tone: "error" };
+    case "error":
+      return { text: state.message, tone: "error" };
+    default:
+      return null;
+  }
+}
 
 const OFFER_STATUS_LABEL: Record<OfferStatus, string> = {
   PENDING: "En attente",
@@ -54,6 +76,20 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
     document.addEventListener("visibilitychange", refreshOnReturn);
     return () => document.removeEventListener("visibilitychange", refreshOnReturn);
   }, []);
+
+  // Au retour de la page de paiement, on vérifie le paiement auprès de Notch Pay au lieu d'attendre le
+  // webhook : il peut arriver en retard, ou être perdu quand le serveur dort.
+  const paymentReturn = usePaymentReturn({
+    bookingId: booking.id,
+    active: isTraveler && booking.status === "PENDING_PAYMENT",
+    onConfirmed: () => {
+      getBooking(bookingId.current)
+        .then(setBooking)
+        .catch(() => {});
+    },
+  });
+  const verifying = paymentReturn.state.phase === "verifying";
+  const returnMessage = paymentReturnMessage(paymentReturn.state);
 
   async function run(action: () => Promise<BookingDetail | void>) {
     setError(null);
@@ -220,20 +256,41 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                 L&apos;hôte a validé le prix. Votre paiement est conservé en séquestre et n&apos;est reversé à l&apos;hôte
                 qu&apos;après confirmation du séjour par vous deux.
               </p>
+              {returnMessage && (
+                <p
+                  role="status"
+                  className={`mt-3 rounded-xl px-3 py-2 text-sm ${
+                    returnMessage.tone === "error" ? "bg-red-50 text-red-700" : "bg-[var(--color-teal-100)] text-[var(--color-teal)]"
+                  }`}
+                >
+                  {returnMessage.text}
+                </p>
+              )}
               <div className="mt-4 flex flex-col gap-3">
                 <Button
                   loading={busy}
+                  disabled={verifying}
                   onClick={() =>
                     run(async () => {
                       const payment = await initiatePayment(booking.id);
+                      // Mémorisée pour pouvoir vérifier le paiement au retour, même si l'adresse de retour ne la porte pas.
+                      rememberPendingPayment(booking.id, payment.gatewayRef);
                       window.location.assign(payment.paymentUrl);
                     })
                   }
                 >
                   Payer {booking.totalPrice != null ? formatFcfa(booking.totalPrice) : ""}
                 </Button>
-                <Button variant="outline" onClick={refresh} disabled={busy}>
-                  J&apos;ai payé — actualiser
+                <Button
+                  variant="outline"
+                  disabled={busy || verifying}
+                  onClick={async () => {
+                    // Avec une référence de paiement connue, on vérifie auprès de Notch Pay ; sinon, simple actualisation.
+                    const started = await paymentReturn.verify();
+                    if (!started) await refresh();
+                  }}
+                >
+                  J&apos;ai payé — vérifier
                 </Button>
               </div>
             </>

@@ -390,6 +390,23 @@ export function initiatePayment(bookingId: string) {
   });
 }
 
+export interface PaymentVerification {
+  confirmed: boolean;
+  paymentStatus: "SUCCESS" | "FAILED" | "PENDING";
+  bookingStatus: string;
+}
+
+/**
+ * Au retour du voyageur : le serveur relit le paiement chez l'agrégateur et, s'il est réussi pour CETTE
+ * réservation et au bon montant, la confirme. Complète le webhook, qui peut arriver en retard ou se perdre.
+ */
+export function verifyPaymentReturn(bookingId: string, reference: string) {
+  return authRequest<PaymentVerification>(`/payments/bookings/${encodeURIComponent(bookingId)}/verify`, {
+    method: "POST",
+    body: JSON.stringify({ reference }),
+  });
+}
+
 // ---------------------------------------------------------------------
 // Côté hôte : logements, chambres, équipements, publication, réservations reçues
 // ---------------------------------------------------------------------
