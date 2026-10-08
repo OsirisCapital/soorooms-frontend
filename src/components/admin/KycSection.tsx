@@ -2,14 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import {
-  ApiError,
-  approveKyc,
-  getKycDocumentLink,
-  listPendingKyc,
-  rejectKyc,
-  type PendingKyc,
-} from "@/lib/api";
+import { listKycHistory, listPendingKycDetailed, type KycHistoryItem, type PendingKycItem } from "@/lib/admin-api";
+import { ApiError, approveKyc, getKycDocumentLink, rejectKyc } from "@/lib/api";
 import { formatDay } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
 
@@ -79,12 +73,35 @@ function DocLink({ label, documentId, kind }: { label: string; documentId: strin
 // --- KYC en attente ---------------------------------------------------------
 
 export function KycSection() {
-  const { data, loading, error } = useAsyncData("admin-kyc", listPendingKyc);
+  const [tab, setTab] = useState<"pending" | "history">("pending");
+  return (
+    <section>
+      <div role="tablist" aria-label="Accréditations" className="mb-4 flex gap-2">
+        {([["pending", "À examiner"], ["history", "Historique"]] as const).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${tab === id ? "bg-[var(--color-teal)] text-white" : "border border-[var(--color-border)] bg-white text-[var(--color-ink)]"}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "pending" ? <PendingList /> : <HistoryList />}
+    </section>
+  );
+}
+
+function PendingList() {
+  const { data, loading, error } = useAsyncData("admin-kyc", listPendingKycDetailed);
   const [done, setDone] = useState<string[]>([]);
   const items = (data ?? []).filter((item) => !done.includes(item.id));
 
   return (
-    <section>
+    <div>
       <h2 className="text-xl font-bold text-[var(--color-teal)]">Vérifications d&apos;identité{data ? ` (${items.length})` : ""}</h2>
       {loading ? (
         <div className="mt-3 h-32 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
@@ -99,11 +116,57 @@ export function KycSection() {
           ))}
         </ul>
       )}
-    </section>
+    </div>
   );
 }
 
-function KycCard({ item, onDecided }: { item: PendingKyc; onDecided: () => void }) {
+const formatDateTime = (iso: string) =>
+  new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Africa/Douala" }).format(new Date(iso));
+
+function HistoryRow({ item }: { item: KycHistoryItem }) {
+  const approved = item.status === "APPROVED";
+  return (
+    <li className="rounded-2xl bg-white p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-[var(--color-teal)]">{item.user.fullName}</p>
+          <p className="text-sm text-slate-600">{item.user.phone}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${approved ? "bg-[var(--color-teal-100)] text-[var(--color-teal)]" : "bg-red-50 text-red-700"}`}>
+          {approved ? "✓ Approuvée" : "✕ Refusée"}
+        </span>
+      </div>
+      {item.reviewerNote && <p className="mt-2 text-sm text-[var(--color-ink)]">Motif : {item.reviewerNote}</p>}
+      <p className="mt-2 text-xs text-slate-500">
+        {item.reviewedAt ? formatDateTime(item.reviewedAt) : "Date inconnue"} · par {item.reviewer?.fullName ?? "auteur non enregistré"}
+      </p>
+    </li>
+  );
+}
+
+function HistoryList() {
+  const { data, loading, error } = useAsyncData("admin-kyc-history", () => listKycHistory(50));
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-[var(--color-teal)]">Décisions récentes</h2>
+      {loading ? (
+        <div className="mt-3 h-32 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
+      ) : error ? (
+        <p className="mt-3 text-sm text-red-500">{error}</p>
+      ) : !data || data.length === 0 ? (
+        <p className="mt-3 rounded-2xl bg-white p-5 text-center text-sm text-slate-600 shadow-sm">Aucune décision pour le moment.</p>
+      ) : (
+        <ul className="mt-3 flex flex-col gap-3">
+          {data.map((item) => (
+            <HistoryRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function KycCard({ item, onDecided }: { item: PendingKycItem; onDecided: () => void }) {
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -128,6 +191,11 @@ function KycCard({ item, onDecided }: { item: PendingKyc; onDecided: () => void 
         {item.phone}
         {item.email ? ` · ${item.email}` : ""}
       </p>
+      {item.attempts > 1 && (
+        <p className="mt-1 inline-block rounded-full bg-[var(--color-sand,#f2a65a)]/25 px-2.5 py-0.5 text-xs font-semibold text-[var(--color-ink)]">
+          Nouvelle tentative (demande n°{item.attempts})
+        </p>
+      )}
       {item.document ? (
         <>
           <p className="mt-1 text-xs text-slate-500">Envoyé le {formatDay(item.document.submittedAt)}</p>

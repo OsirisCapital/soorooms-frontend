@@ -7,6 +7,8 @@ import { useAsyncData } from "@/lib/use-async-data";
 /** Libellés lisibles des actions écrites dans le journal ; une action inconnue s'affiche telle quelle. */
 const ACTION_LABEL: Record<string, string> = {
   "kyc.document.view": "A ouvert un document d'identité",
+  "kyc.approve": "A approuvé une vérification d'identité",
+  "kyc.reject": "A refusé une vérification d'identité",
 };
 
 const formatDateTime = (iso: string) =>

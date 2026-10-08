@@ -2,7 +2,7 @@
  * Appels de l'espace d'administration : accès de la personne connectée, statistiques, journal.
  * (Les appels d'accréditations et de litiges restent dans api.ts.)
  */
-import { authRequest } from "./api";
+import { authRequest, type PendingKyc } from "./api";
 
 export type Permission =
   | "dashboard.view"
@@ -72,3 +72,22 @@ export const getAdminAccess = () => authRequest<AdminAccess>("/admin/me");
 export const getAdminOverview = () => authRequest<AdminOverview>("/admin/stats/overview");
 export const getAdminTimeseries = (days: number) => authRequest<AdminTimeseries>(`/admin/stats/timeseries?days=${days}`);
 export const listAuditLog = (limit = 100) => authRequest<AuditEntry[]>(`/admin/audit?limit=${limit}`);
+
+/** Demande d'identité en attente, avec le nombre de demandes déjà déposées par la personne. */
+export interface PendingKycItem extends PendingKyc {
+  attempts: number;
+}
+
+export interface KycHistoryItem {
+  id: string;
+  status: "APPROVED" | "REJECTED";
+  reviewerNote: string | null;
+  submittedAt: string;
+  reviewedAt: string | null;
+  user: { id: string; fullName: string; phone: string };
+  /** null : décision antérieure au journal, auteur inconnu. */
+  reviewer: { id: string; fullName: string } | null;
+}
+
+export const listPendingKycDetailed = () => authRequest<PendingKycItem[]>("/admin/kyc/pending");
+export const listKycHistory = (limit = 50) => authRequest<KycHistoryItem[]>(`/admin/kyc/history?limit=${limit}`);
