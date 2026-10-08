@@ -15,19 +15,24 @@ export interface RetryOptions {
   onRetry?: (retryNumber: number) => void;
   /** Permet d'arrêter dès que l'écran a été quitté. */
   isCancelled?: () => boolean;
+  /** Durée totale au-delà de laquelle on ne lance plus de nouvel essai, quoi qu'il reste de tentatives. */
+  maxElapsedMs?: number;
   /** Remplaçable dans les tests. */
   sleep?: (ms: number) => Promise<void>;
 }
 
 export async function retry<T>(task: () => Promise<T>, options: RetryOptions): Promise<T> {
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const startedAt = Date.now();
 
   for (let attempt = 0; ; attempt++) {
     try {
       return await task();
     } catch (error) {
       const exhausted = attempt >= options.retries;
-      if (exhausted || !options.shouldRetry(error) || options.isCancelled?.()) throw error;
+      // Un nouvel essai qui dépasserait la durée maximale n'est pas lancé : l'attente a une fin garantie.
+      const outOfTime = options.maxElapsedMs !== undefined && Date.now() - startedAt + options.delayMs > options.maxElapsedMs;
+      if (exhausted || outOfTime || !options.shouldRetry(error) || options.isCancelled?.()) throw error;
       options.onRetry?.(attempt + 1);
       await sleep(options.delayMs);
       if (options.isCancelled?.()) throw error;

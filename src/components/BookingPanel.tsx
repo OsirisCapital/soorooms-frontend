@@ -26,11 +26,16 @@ function paymentReturnMessage(state: PaymentReturnState): { text: string; tone: 
   switch (state.phase) {
     case "verifying":
       if (state.waking) return { text: "Le serveur se réveille, cela peut prendre jusqu'à une minute. Ne fermez pas cette page.", tone: "info" };
-      if (state.pending) return { text: "Votre paiement est en cours de traitement par l'opérateur. Nous continuons de vérifier…", tone: "info" };
+      if (state.pending) {
+        return {
+          text: "Votre paiement est en cours de traitement par l'opérateur. Nous continuons de vérifier. Vous n'avez pas terminé le paiement ? Touchez « Payer » pour recommencer.",
+          tone: "info",
+        };
+      }
       return { text: "Vérification de votre paiement auprès de Notch Pay…", tone: "info" };
     case "pending":
       return {
-        text: "Le paiement n'est pas encore confirmé. Si vous l'avez validé sur votre téléphone, patientez un instant puis touchez « J'ai payé — vérifier ».",
+        text: "Le paiement n'est pas confirmé. Si vous l'avez validé sur votre téléphone, patientez un instant puis touchez « J'ai payé — vérifier ». Si vous avez quitté la page de paiement avant la fin, touchez « Payer » pour recommencer.",
         tone: "info",
       };
     case "failed":
@@ -267,9 +272,9 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                 </p>
               )}
               <div className="mt-4 flex flex-col gap-3">
+                {/* Toujours cliquable, y compris pendant la vérification : un paiement abandonné ne doit jamais enfermer le voyageur. */}
                 <Button
                   loading={busy}
-                  disabled={verifying}
                   onClick={() =>
                     run(async () => {
                       const payment = await initiatePayment(booking.id);
