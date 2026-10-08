@@ -110,10 +110,16 @@ export default function RegisterPage() {
               onChange={(e) => setAccepted(e.target.checked)}
               className="mt-0.5 h-5 w-5 rounded border-[var(--color-border)] accent-[var(--color-terracotta)]"
             />
-            <span>
-              J&apos;accepte les <span className="font-medium text-[var(--color-teal)]">Conditions d&apos;utilisation</span> et
-              la <span className="font-medium text-[var(--color-teal)]">Politique de confidentialité</span>
-            </span>
+    <span>
+     J&apos;accepte les{" "}
+     <Link href="/conditions" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+       Conditions d&apos;utilisation
+     </Link>{" "}
+     et la{" "}
+     <Link href="/confidentialite" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+       Politique de confidentialité
+     </Link>
+   </span>
           </label>
 
           {error && <p className="text-sm text-red-500">{error}</p>}

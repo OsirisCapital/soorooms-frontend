@@ -9,7 +9,7 @@ export default function SplashPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const destination = getAccessToken() ? "/home" : "/login";
+    const destination = getAccessToken() ? "/home" : "/bienvenue";
     const timer = setTimeout(() => router.replace(destination), 900);
     return () => clearTimeout(timer);
   }, [router]);
