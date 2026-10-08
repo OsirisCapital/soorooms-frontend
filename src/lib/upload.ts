@@ -36,6 +36,9 @@ export async function uploadFile(file: File, purpose: UploadPurpose): Promise<st
   form.append("signature", signature.signature);
   form.append("folder", signature.folder);
   form.append("allowed_formats", signature.allowedFormats);
+  // Livraison privée (documents KYC) : le paramètre fait partie de la signature,
+  // l'omettre ferait refuser l'envoi par Cloudinary.
+  if (signature.type) form.append("type", signature.type);
 
   let response: Response;
   try {

@@ -603,6 +603,16 @@ export interface AdminDispute {
 }
 
 export const listPendingKyc = () => authRequest<PendingKyc[]>("/admin/kyc/pending");
+
+export interface KycDocumentLink {
+  url: string;
+  /** Durée de validité du lien ; null pour un ancien document public. */
+  expiresInSeconds: number | null;
+}
+
+/** Lien temporaire vers un document KYC privé, généré à la demande (il expire en quelques minutes). */
+export const getKycDocumentLink = (documentId: string, kind: "id-card" | "proof-of-address") =>
+  authRequest<KycDocumentLink>(`/admin/kyc/documents/${encodeURIComponent(documentId)}/${kind}`);
 export const listDisputes = () => authRequest<AdminDispute[]>("/admin/disputes");
 
 export const approveKyc = (userId: string) =>
@@ -650,6 +660,8 @@ export interface UploadSignature {
   signature: string;
   folder: string;
   allowedFormats: string;
+  /** Présent pour les documents privés (« authenticated ») : à renvoyer tel quel à Cloudinary. */
+  type?: string;
 }
 
 export function getUploadSignature(purpose: UploadPurpose) {

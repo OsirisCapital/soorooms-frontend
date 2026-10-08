@@ -13,27 +13,11 @@ import { loadMe } from "@/lib/use-me";
 
 const STEPS = ["Profil hôte", "Documents", "Envoi"];
 
-/** Ajoute https:// à un lien collé sans protocole ; renvoie null s'il n'est toujours pas valide. */
-function normalizeUrl(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  // Un chemin de fichier local (C:\Users\…) n'est pas un lien web : personne d'autre ne pourrait l'ouvrir.
-  if (trimmed.includes("\\")) return null;
-  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const url = new URL(withScheme);
-    const isWeb = url.protocol === "http:" || url.protocol === "https:";
-    return isWeb && url.hostname.includes(".") ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Activation du compte hôte : l'étape 1 ouvre le profil hôte
  * (POST /auth/become-host), les étapes 2 et 3 constituent la demande KYC
- * (POST /kyc/submit). Les documents sont envoyés depuis l'appareil (Cloudinary)
- * ou, en secours, donnés sous forme de lien.
+ * (POST /kyc/submit). Les documents sont envoyés depuis l'appareil vers Cloudinary,
+ * en livraison privée : seul un administrateur peut ensuite les consulter.
  */
 export default function ActivationHotePage() {
   const router = useRouter();
@@ -69,19 +53,14 @@ export default function ActivationHotePage() {
 
   function submitDocuments(event: React.FormEvent) {
     event.preventDefault();
-    const idCard = normalizeUrl(idCardUrl);
-    const proof = normalizeUrl(proofUrl);
-    if (!idCard) return setError("Ajoutez votre pièce d'identité : choisissez un fichier ou indiquez un lien valide.");
-    if (proof === null) return setError("Le lien du justificatif de domicile n'est pas valide.");
-    setIdCardUrl(idCard);
-    setProofUrl(proof);
+    if (!idCardUrl) return setError("Ajoutez votre pièce d'identité : choisissez un fichier sur votre appareil.");
     setError(null);
     setStep(2);
   }
 
   const sendRequest = () =>
     run(async () => {
-      await submitKyc({ idCardUrl: idCardUrl.trim(), proofOfAddressUrl: proofUrl.trim() || undefined });
+      await submitKyc({ idCardUrl, proofOfAddressUrl: proofUrl || undefined });
       await loadMe(true); // le profil passe à « KYC envoyé » : la flèche de bascule apparaît
       setDone(true);
     });
@@ -156,7 +135,7 @@ export default function ActivationHotePage() {
             <form onSubmit={submitDocuments} noValidate className="flex flex-col gap-4">
               <p className="text-slate-600">
                 Ajoutez vos documents : touchez le bouton pour choisir un fichier ou une photo sur votre appareil (image ou
-                PDF, 8 Mo maximum).
+                PDF, 8 Mo maximum). Vos documents restent privés : seule l&apos;équipe SòôRooms peut les consulter.
               </p>
               <FileUploadField label="Pièce d'identité" purpose="kyc_document" value={idCardUrl} onChange={setIdCardUrl} required />
               <FileUploadField label="Justificatif de domicile" purpose="kyc_document" value={proofUrl} onChange={setProofUrl} />
@@ -175,9 +154,9 @@ export default function ActivationHotePage() {
                 <dt className="text-xs font-medium text-slate-500">Présentation</dt>
                 <dd className="mb-3 mt-0.5 text-[var(--color-ink)]">{bio.trim() || "—"}</dd>
                 <dt className="text-xs font-medium text-slate-500">Pièce d&apos;identité</dt>
-                <dd className="mb-3 mt-0.5 break-all text-[var(--color-ink)]">{idCardUrl}</dd>
+                <dd className="mb-3 mt-0.5 text-[var(--color-ink)]">Document envoyé ✓</dd>
                 <dt className="text-xs font-medium text-slate-500">Justificatif de domicile</dt>
-                <dd className="mt-0.5 break-all text-[var(--color-ink)]">{proofUrl.trim() || "—"}</dd>
+                <dd className="mt-0.5 text-[var(--color-ink)]">{proofUrl ? "Document envoyé ✓" : "—"}</dd>
               </dl>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button onClick={sendRequest} loading={busy}>

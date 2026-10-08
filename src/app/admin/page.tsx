@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import {
   ApiError,
   approveKyc,
+  getKycDocumentLink,
   listDisputes,
   listPendingKyc,
   rejectKyc,
@@ -48,15 +49,53 @@ function safeHttpUrl(value: string | null) {
 
 const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : "Une erreur est survenue. Réessayez.");
 
-function DocLink({ label, url }: { label: string; url: string | null }) {
-  const href = safeHttpUrl(url);
-  if (!url) return null;
-  return href ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="block text-sm font-semibold text-[var(--color-terracotta)] underline">
-      {label}
-    </a>
-  ) : (
-    <p className="text-sm text-slate-500">{label} : lien non valide</p>
+/**
+ * Les documents KYC sont privés : le lien est demandé au serveur au moment du clic
+ * (il expire en quelques minutes) et chaque consultation est journalisée côté serveur.
+ */
+function DocLink({ label, documentId, kind }: { label: string; documentId: string; kind: "id-card" | "proof-of-address" }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fallbackHref, setFallbackHref] = useState<string | null>(null);
+
+  async function open() {
+    setError(null);
+    setFallbackHref(null);
+    setBusy(true);
+    // L'onglet est ouvert tout de suite, pendant le geste de l'utilisateur : les navigateurs
+    // mobiles bloquent une ouverture faite après une attente réseau.
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
+    try {
+      const href = safeHttpUrl((await getKycDocumentLink(documentId, kind)).url);
+      if (!href) throw new Error("Lien non valide.");
+      if (tab) tab.location.href = href;
+      else setFallbackHref(href); // fenêtre bloquée : on affiche le lien à toucher
+    } catch (err) {
+      tab?.close();
+      setError(messageOf(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={open}
+        disabled={busy}
+        className="block text-left text-sm font-semibold text-[var(--color-terracotta)] underline disabled:opacity-60"
+      >
+        {busy ? "Ouverture…" : label}
+      </button>
+      {fallbackHref && (
+        <a href={fallbackHref} target="_blank" rel="noopener noreferrer" className="mt-1 block text-sm text-[var(--color-teal)] underline">
+          Ouvrir le document
+        </a>
+      )}
+      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+    </div>
   );
 }
 
@@ -116,8 +155,10 @@ function KycCard({ item, onDecided }: { item: PendingKyc; onDecided: () => void 
         <>
           <p className="mt-1 text-xs text-slate-500">Envoyé le {formatDay(item.document.submittedAt)}</p>
           <div className="mt-3 flex flex-col gap-1">
-            <DocLink label="Pièce d'identité" url={item.document.idCardUrl} />
-            <DocLink label="Justificatif de domicile" url={item.document.proofOfAddressUrl} />
+            <DocLink label="Pièce d'identité" documentId={item.document.id} kind="id-card" />
+            {item.document.proofOfAddressUrl && (
+              <DocLink label="Justificatif de domicile" documentId={item.document.id} kind="proof-of-address" />
+            )}
           </div>
         </>
       ) : (

@@ -319,7 +319,6 @@ function AmenitiesCard({ property, reload }: CardProps) {
 function PhotosCard({ property, reload }: CardProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState<string | null>(null);
-  const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const photos = property.photos ?? [];
@@ -346,21 +345,6 @@ function PhotosCard({ property, reload }: CardProps) {
     setProgress(null);
     setBusy(false);
     if (failed) setError(failed);
-  }
-
-  async function addByLink(event: React.FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      await addPropertyPhoto(property.id, url.trim());
-      setUrl("");
-      await reload();
-    } catch (err) {
-      setError(messageOf(err));
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function remove(photoId: string) {
@@ -405,28 +389,6 @@ function PhotosCard({ property, reload }: CardProps) {
       >
         {progress ?? "Ajouter des photos"}
       </button>
-
-      <details className="mt-4">
-        <summary className="cursor-pointer text-xs font-semibold text-slate-500">Ajouter une photo par lien</summary>
-        <form onSubmit={addByLink} className="mt-3 flex gap-2">
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://…"
-            aria-label="Lien de la photo"
-            required
-            className="min-w-0 flex-1 rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3 text-sm"
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            className="shrink-0 rounded-2xl bg-[var(--color-teal-600)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            Ajouter
-          </button>
-        </form>
-      </details>
 
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
     </Card>
