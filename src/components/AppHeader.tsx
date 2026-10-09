@@ -7,6 +7,7 @@ import { EmailBanner } from "@/components/EmailBanner";
 import { Logo } from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 import { setMode, useAccount, type AccountMode } from "@/lib/account";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const ROUND_BUTTON =
   "flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-teal-600)] text-white hover:bg-[var(--color-teal)]";
@@ -52,9 +53,7 @@ export function AppHeader() {
             <Link href="/messages" aria-label="Messages" className={ROUND_BUTTON}>
               <Icon name="chat" size={20} />
             </Link>
-            <Link href="/notifications" aria-label="Notifications" className={ROUND_BUTTON}>
-              <Icon name="bell" size={20} />
-            </Link>
+                 <NotificationBell className={ROUND_BUTTON} />
           </div>
 
           {open && (

@@ -11,6 +11,7 @@ import { useMe } from "@/lib/use-me";
 const SECTIONS: Array<{ href: string; label: string; permission: Permission }> = [
   { href: "/admin", label: "Tableau de bord", permission: "dashboard.view" },
   { href: "/admin/accreditations", label: "Accréditations", permission: "kyc.review" },
+  { href: "/admin/support", label: "Support", permission: "support.manage" },
   { href: "/admin/litiges", label: "Litiges", permission: "disputes.view" },
   { href: "/admin/journal", label: "Journal", permission: "audit.view" },
 ];
@@ -25,7 +26,7 @@ function SectionNav({ access }: { access: AdminAccess }) {
   return (
     <nav aria-label="Sections de l'administration" className="no-scrollbar -mx-5 mb-6 flex gap-2 overflow-x-auto px-5">
       {visible.map((section) => {
-        const active = pathname === section.href;
+        const active = section.href === "/admin" ? pathname === "/admin" : pathname === section.href || pathname.startsWith(`${section.href}/`);
         return (
           <Link
             key={section.href}

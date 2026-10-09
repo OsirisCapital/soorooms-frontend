@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 
 const FAQ = [
@@ -30,7 +31,16 @@ export default function AidePage() {
           </details>
         ))}
       </div>
-      <p className="mt-6 text-sm text-slate-500">Le contact direct avec le support arrivera bientôt.</p>
+
+      <div className="mt-6 rounded-2xl bg-white p-4 text-center shadow-sm">
+        <p className="text-sm text-slate-600">Vous n'avez pas trouvé de réponse ?</p>
+        <Link
+          href="/profil/aide/tickets"
+          className="mt-3 block rounded-full bg-[var(--color-terracotta)] px-5 py-3 text-center font-semibold text-white"
+        >
+          Contacter le support
+        </Link>
+      </div>
     </AppShell>
   );
 }

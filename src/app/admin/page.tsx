@@ -5,6 +5,7 @@ import { AdminFrame } from "@/components/admin/AdminFrame";
 import { BarList, DailyChart, StatTile } from "@/components/admin/charts";
 import { getAdminOverview, getAdminTimeseries } from "@/lib/admin-api";
 import { formatFcfa } from "@/lib/booking-labels";
+import { getSupportSummary } from "@/lib/support-api";
 import { useAsyncData } from "@/lib/use-async-data";
 
 const RANGES = [7, 30, 90] as const;
@@ -20,7 +21,22 @@ const BOOKING_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Annulées",
 };
 
-function Dashboard() {
+/** Demandes de support à traiter : seulement pour l'équipe qui y a accès (sinon le serveur refuserait l'appel). */
+function SupportTile() {
+  const { data } = useAsyncData("admin-support-summary", getSupportSummary);
+  if (!data) return null;
+  return (
+    <StatTile
+      label="Demandes support"
+      value={data.open.toLocaleString("fr-FR")}
+      href="/admin/support"
+      tone={data.open > 0 ? "alert" : "default"}
+      hint={data.unassigned > 0 ? `${data.unassigned} non assignée${data.unassigned > 1 ? "s" : ""}` : "Aucune en attente"}
+    />
+  );
+}
+
+function Dashboard({ canSupport }: { canSupport: boolean }) {
   const [range, setRange] = useState<(typeof RANGES)[number]>(30);
   const overview = useAsyncData("admin-overview", getAdminOverview);
   const series = useAsyncData(`admin-series-${range}`, () => getAdminTimeseries(range));
@@ -42,6 +58,7 @@ function Dashboard() {
         <StatTile label="Logements actifs" value={activeProps.toLocaleString("fr-FR")} hint={`${o.properties.total} au total`} />
         <StatTile label="Réservations" value={o.bookings.total.toLocaleString("fr-FR")} />
         <StatTile label="Identités à examiner" value={o.kyc.pending.toLocaleString("fr-FR")} href="/admin/accreditations" tone={o.kyc.pending > 0 ? "alert" : "default"} hint={o.kyc.pending > 0 ? "À traiter" : "Rien en attente"} />
+        {canSupport && <SupportTile />}
         <StatTile label="Litiges ouverts" value={o.bookings.disputed.toLocaleString("fr-FR")} href="/admin/litiges" tone={o.bookings.disputed > 0 ? "alert" : "default"} hint={o.bookings.disputed > 0 ? "À traiter" : "Aucun litige"} />
       </div>
 
@@ -82,5 +99,5 @@ function Dashboard() {
 }
 
 export default function AdminDashboardPage() {
-  return <AdminFrame permission="dashboard.view">{() => <Dashboard />}</AdminFrame>;
+  return <AdminFrame permission="dashboard.view">{(access) => <Dashboard canSupport={access.permissions.includes("support.manage")} />}</AdminFrame>;
 }
