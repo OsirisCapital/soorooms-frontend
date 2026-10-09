@@ -651,7 +651,7 @@ export const removeFavorite = (propertyId: string) =>
 // Téléversement de fichiers (Cloudinary, signature fournie par le backend)
 // ---------------------------------------------------------------------
 
-export type UploadPurpose = "property_photo" | "kyc_document";
+   export type UploadPurpose = "property_photo" | "kyc_document" | "avatar";
 
 export interface UploadSignature {
   cloudName: string;

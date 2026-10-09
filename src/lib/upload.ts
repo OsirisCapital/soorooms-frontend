@@ -5,11 +5,13 @@ const MAX_BYTES = 8 * 1024 * 1024; // 8 Mo
 const ACCEPTED: Record<UploadPurpose, string[]> = {
   property_photo: ["image/jpeg", "image/png", "image/webp"],
   kyc_document: ["image/jpeg", "image/png", "image/webp", "application/pdf"],
+  avatar: ["image/jpeg", "image/png", "image/webp"],
 };
 
 export const ACCEPT_ATTRIBUTE: Record<UploadPurpose, string> = {
   property_photo: "image/jpeg,image/png,image/webp",
   kyc_document: "image/jpeg,image/png,image/webp,application/pdf",
+  avatar: "image/jpeg,image/png,image/webp",
 };
 
 /**
