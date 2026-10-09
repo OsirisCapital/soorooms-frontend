@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icon";
-import { removeAvatar, setAvatar } from "@/lib/profile-api";
+import { isAvatarLocked, removeAvatar, setAvatar } from "@/lib/profile-api";
 import { squareThumbnail } from "@/lib/image-resize";
 import { ACCEPT_ATTRIBUTE, uploadErrorMessage, uploadFile } from "@/lib/upload";
-import { loadMe } from "@/lib/use-me";
+import { loadMe, useMe } from "@/lib/use-me";
 
 /** Avatar de la page Profil : toucher la photo pour la changer, « Supprimer la photo » pour revenir à l'initiale. */
-export function AvatarEditor({ name, url }: { name: string; url: string | null }) {
+export function AvatarEditor({ name, url, hint }: { name: string; url: string | null; hint?: string }) {
+  const me = useMe();
+  const locked = isAvatarLocked(me?.kycStatus, url);
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +47,22 @@ export function AvatarEditor({ name, url }: { name: string; url: string | null }
     }
   }
 
+  if (locked) {
+    return (
+      <div className="flex flex-col items-center">
+        <Avatar url={url} name={name} size={112} />
+        <p className="mt-2 max-w-xs text-center text-xs text-slate-500">
+          {me?.kycStatus === "APPROVED"
+            ? "Cette photo est celle de votre identité vérifiée : elle ne peut plus être modifiée."
+            : "Votre photo est en cours de vérification avec votre pièce d'identité : elle ne peut pas être modifiée pour l'instant."}{" "}
+          <Link href="/profil/aide/tickets" className="font-semibold text-[var(--color-teal)] underline">
+            Contacter le support
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center">
       <input ref={inputRef} type="file" accept={ACCEPT_ATTRIBUTE.avatar} onChange={handleFile} className="hidden" />
@@ -63,7 +82,7 @@ export function AvatarEditor({ name, url }: { name: string; url: string | null }
         </span>
       </button>
       <p className="mt-2 text-xs text-slate-500" aria-live="polite">
-        {busy ? "Envoi en cours…" : "Touchez la photo pour la changer"}
+        {busy ? "Envoi en cours…" : (hint ?? "Touchez la photo pour la changer")}
       </p>
       {url && !busy && (
         <button type="button" onClick={handleRemove} className="mt-1 text-xs font-semibold text-[var(--color-terracotta)]">

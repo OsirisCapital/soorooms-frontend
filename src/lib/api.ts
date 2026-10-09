@@ -585,7 +585,8 @@ export interface PendingKyc {
   fullName: string;
   phone: string;
   email: string | null;
-  document: { id: string; idCardUrl: string; proofOfAddressUrl: string | null; submittedAt: string } | null;
+  profilePhotoUrl: string | null;
+   document: { id: string; idCardUrl: string; proofOfAddressUrl: string | null; profilePhotoUrl: string | null; submittedAt: string } | null;
 }
 
 export interface AdminDispute {

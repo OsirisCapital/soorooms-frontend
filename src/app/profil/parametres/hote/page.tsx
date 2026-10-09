@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
+import { AvatarEditor } from "@/components/AvatarEditor";
 import { FileUploadField } from "@/components/FileUploadField";
 import { setMode } from "@/lib/account";
 import { ApiError, becomeHost, getMyKyc, submitKyc } from "@/lib/api";
 import { useAsyncData } from "@/lib/use-async-data";
-import { loadMe } from "@/lib/use-me";
+import { isOwnAvatarUrl } from "@/lib/profile-api";
+import { loadMe, useMe } from "@/lib/use-me";
 
 const STEPS = ["Profil hôte", "Documents", "Envoi"];
 
@@ -22,6 +24,8 @@ const STEPS = ["Profil hôte", "Documents", "Envoi"];
 export default function ActivationHotePage() {
   const router = useRouter();
   const { data: kyc, loading } = useAsyncData("my-kyc", getMyKyc);
+  const me = useMe();
+  const hasPhoto = isOwnAvatarUrl(me?.avatarUrl);
 
   const [step, setStep] = useState(0);
   const [bio, setBio] = useState("");
@@ -53,6 +57,7 @@ export default function ActivationHotePage() {
 
   function submitDocuments(event: React.FormEvent) {
     event.preventDefault();
+    if (!hasPhoto) return setError("Ajoutez votre photo de profil : elle permet de vérifier que vous êtes la personne de la pièce d'identité.");
     if (!idCardUrl) return setError("Ajoutez votre pièce d'identité : choisissez un fichier sur votre appareil.");
     setError(null);
     setStep(2);
@@ -137,6 +142,15 @@ export default function ActivationHotePage() {
                 Ajoutez vos documents : touchez le bouton pour choisir un fichier ou une photo sur votre appareil (image ou
                 PDF, 8 Mo maximum). Vos documents restent privés : seule l&apos;équipe SòôRooms peut les consulter.
               </p>
+              <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <p className="font-semibold text-[var(--color-ink)]">Votre photo de profil</p>
+                <p className="mb-4 mt-1 text-sm text-slate-600">
+                  Une photo de votre visage, de face, nette et sans lunettes de soleil ni filtre. Le contrôleur la compare à
+                  votre pièce d&apos;identité pour s&apos;assurer qu&apos;il s&apos;agit bien de vous. Elle sera aussi votre photo sur
+                  SòôRooms, et ne pourra plus être changée une fois la vérification envoyée.
+                </p>
+                <AvatarEditor name={me?.fullName ?? ""} url={hasPhoto ? (me?.avatarUrl ?? null) : null} hint="Touchez le cercle pour choisir une photo" />
+              </div>
               <FileUploadField label="Pièce d'identité" purpose="kyc_document" value={idCardUrl} onChange={setIdCardUrl} required />
               <FileUploadField label="Justificatif de domicile" purpose="kyc_document" value={proofUrl} onChange={setProofUrl} />
               {error && <p className="text-sm text-red-500">{error}</p>}
@@ -153,6 +167,8 @@ export default function ActivationHotePage() {
               <dl className="rounded-2xl bg-white p-4 text-sm shadow-sm">
                 <dt className="text-xs font-medium text-slate-500">Présentation</dt>
                 <dd className="mb-3 mt-0.5 text-[var(--color-ink)]">{bio.trim() || "—"}</dd>
+                <dt className="text-xs font-medium text-slate-500">Photo de profil</dt>
+                <dd className="mb-3 mt-0.5 text-[var(--color-ink)]">{hasPhoto ? "Ajoutée ✓" : "—"}</dd>
                 <dt className="text-xs font-medium text-slate-500">Pièce d&apos;identité</dt>
                 <dd className="mb-3 mt-0.5 text-[var(--color-ink)]">Document envoyé ✓</dd>
                 <dt className="text-xs font-medium text-slate-500">Justificatif de domicile</dt>

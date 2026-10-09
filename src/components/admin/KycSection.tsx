@@ -70,6 +70,30 @@ function DocLink({ label, documentId, kind }: { label: string; documentId: strin
   );
 }
 
+/** Photo de profil du dossier, à comparer au visage de la pièce d'identité. Elle est publique : affichée directement. */
+function ProfilePhoto({ url }: { url: string | null }) {
+  const href = safeHttpUrl(url);
+  if (!href) {
+    return (
+      <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+        Aucune photo de profil dans ce dossier (demande antérieure à cette règle) : refusez-la en demandant une photo.
+      </p>
+    );
+  }
+  return (
+    <div className="mt-3 flex items-center gap-4 rounded-xl bg-[var(--color-cream)] p-3">
+      <a href={href} target="_blank" rel="noopener noreferrer" aria-label="Agrandir la photo de profil" className="shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element -- photo Cloudinary de l'utilisateur */}
+        <img src={href} alt="Photo de profil du demandeur" referrerPolicy="no-referrer" className="h-24 w-24 rounded-xl object-cover" />
+      </a>
+      <p className="text-sm text-[var(--color-ink)]">
+        <span className="font-semibold">Photo de profil.</span> Vérifiez que le visage correspond à celui de la pièce d&apos;identité
+        avant d&apos;approuver. Touchez la photo pour l&apos;agrandir.
+      </p>
+    </div>
+  );
+}
+
 // --- KYC en attente ---------------------------------------------------------
 
 export function KycSection() {
@@ -199,6 +223,7 @@ function KycCard({ item, onDecided }: { item: PendingKycItem; onDecided: () => v
       {item.document ? (
         <>
           <p className="mt-1 text-xs text-slate-500">Envoyé le {formatDay(item.document.submittedAt)}</p>
+          <ProfilePhoto url={item.document.profilePhotoUrl} />
           <div className="mt-3 flex flex-col gap-1">
             <DocLink label="Pièce d'identité" documentId={item.document.id} kind="id-card" />
             {item.document.proofOfAddressUrl && (
