@@ -8,6 +8,7 @@ import { Logo } from "@/components/Logo";
 import { Icon } from "@/components/Icon";
 import { setMode, useAccount, type AccountMode } from "@/lib/account";
 import { NotificationBell } from "@/components/NotificationBell";
+import { MessagesLink } from "@/components/MessagesLink";
 
 const ROUND_BUTTON =
   "flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-teal-600)] text-white hover:bg-[var(--color-teal)]";
@@ -50,10 +51,8 @@ export function AppHeader() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/messages" aria-label="Messages" className={ROUND_BUTTON}>
-              <Icon name="chat" size={20} />
-            </Link>
-                 <NotificationBell className={ROUND_BUTTON} />
+            <MessagesLink className={ROUND_BUTTON} />
+            <NotificationBell className={ROUND_BUTTON} />
           </div>
 
           {open && (

@@ -9,6 +9,15 @@ const ACTION_LABEL: Record<string, string> = {
   "kyc.document.view": "A ouvert un document d'identité",
   "kyc.approve": "A approuvé une vérification d'identité",
   "kyc.reject": "A refusé une vérification d'identité",
+  "support.assign": "A assigné une demande de support",
+  "support.status": "A changé le statut d'une demande de support",
+  "announcement.publish": "A publié une annonce",
+  "release.publish": "A publié une version de l'application",
+  "staff.add": "A ajouté un membre à l'équipe",
+  "staff.update": "A modifié le niveau ou les accès d'un membre",
+  "staff.remove": "A retiré un membre de l'équipe",
+  "task.assign": "A confié une tâche",
+  "release.required": "A changé le caractère obligatoire d'une version",
 };
 
 const formatDateTime = (iso: string) =>

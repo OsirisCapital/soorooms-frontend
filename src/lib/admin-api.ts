@@ -91,3 +91,124 @@ export interface KycHistoryItem {
 
 export const listPendingKycDetailed = () => authRequest<PendingKycItem[]>("/admin/kyc/pending");
 export const listKycHistory = (limit = 50) => authRequest<KycHistoryItem[]>(`/admin/kyc/history?limit=${limit}`);
+
+// --- Annonces et versions ------------------------------------------------
+
+export type AnnouncementAudience = "ALL" | "TRAVELERS" | "HOSTS";
+export const AUDIENCE_LABEL: Record<AnnouncementAudience, string> = {
+  ALL: "Tout le monde",
+  TRAVELERS: "Voyageurs",
+  HOSTS: "Hôtes",
+};
+
+export interface AnnouncementItem {
+  id: string;
+  title: string;
+  body: string;
+  href: string | null;
+  audience: AnnouncementAudience;
+  status: "DRAFT" | "PUBLISHED";
+  publishedAt: string | null;
+  recipientCount: number;
+  createdAt: string;
+  author: { fullName: string } | null;
+}
+export interface AnnouncementInput {
+  title: string;
+  body: string;
+  href?: string;
+  audience: AnnouncementAudience;
+}
+
+export const listAnnouncements = () => authRequest<AnnouncementItem[]>("/admin/announcements");
+export const createAnnouncement = (input: AnnouncementInput) =>
+  authRequest<AnnouncementItem>("/admin/announcements", { method: "POST", body: JSON.stringify(input) });
+export const deleteAnnouncement = (id: string) => authRequest<{ ok: true }>(`/admin/announcements/${encodeURIComponent(id)}`, { method: "DELETE" });
+export const publishAnnouncement = (id: string) =>
+  authRequest<AnnouncementItem>(`/admin/announcements/${encodeURIComponent(id)}/publish`, { method: "POST" });
+
+export interface ReleaseItem {
+  id: string;
+  version: string;
+  notes: string;
+  required: boolean;
+  publishedAt: string;
+}
+export const listReleases = () => authRequest<ReleaseItem[]>("/admin/releases");
+export const publishRelease = (input: { version: string; notes: string; required: boolean }) =>
+  authRequest<ReleaseItem>("/admin/releases", { method: "POST", body: JSON.stringify(input) });
+export const setReleaseRequired = (id: string, required: boolean) =>
+  authRequest<ReleaseItem>(`/admin/releases/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ required }) });
+
+// --- Équipe et tâches ----------------------------------------------------
+
+export const PERMISSION_LABEL: Record<Permission, string> = {
+  "dashboard.view": "Tableau de bord",
+  "kyc.review": "Accréditations (identités)",
+  "disputes.view": "Litiges",
+  "payments.view": "Paiements",
+  "users.view": "Fiches utilisateurs",
+  "support.manage": "Support",
+  "announcements.manage": "Annonces",
+  "releases.manage": "Versions de l'application",
+  "staff.manage": "Équipe et tâches",
+  "audit.view": "Journal",
+};
+
+export interface StaffMember {
+  id: string;
+  fullName: string;
+  email: string | null;
+  phone: string;
+  staffRole: StaffRole;
+  extraPermissions: string[];
+  permissions: Permission[];
+}
+export interface StaffInput {
+  staffRole: StaffRole;
+  permissions: Permission[];
+}
+
+export const listStaff = () => authRequest<StaffMember[]>("/admin/staff");
+export const addStaff = (input: StaffInput & { identifier: string }) =>
+  authRequest<StaffMember>("/admin/staff", { method: "POST", body: JSON.stringify(input) });
+export const updateStaff = (id: string, input: StaffInput) =>
+  authRequest<StaffMember>(`/admin/staff/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(input) });
+export const removeStaff = (id: string) => authRequest<{ ok: true }>(`/admin/staff/${encodeURIComponent(id)}`, { method: "DELETE" });
+
+export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+export type TaskPriority = "LOW" | "NORMAL" | "HIGH";
+export const TASK_PRIORITY_LABEL: Record<TaskPriority, string> = { LOW: "Basse", NORMAL: "Normale", HIGH: "Haute" };
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = { TODO: "À faire", IN_PROGRESS: "En cours", DONE: "Terminée" };
+
+export interface StaffTask {
+  id: string;
+  title: string;
+  details: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  /** AAAA-MM-JJ */
+  dueDate: string | null;
+  href: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  assignee: { id: string; fullName: string } | null;
+  createdBy: { id: string; fullName: string } | null;
+}
+export interface TaskInput {
+  title: string;
+  details?: string;
+  assigneeId: string;
+  priority: TaskPriority;
+  dueDate?: string;
+  href?: string;
+}
+
+export const listTasks = (scope: "mine" | "all", filter: "open" | "done") => authRequest<StaffTask[]>(`/admin/tasks?scope=${scope}&filter=${filter}`);
+export const getOpenTaskCount = () => authRequest<{ count: number }>("/admin/tasks/open-count");
+export const createTask = (input: TaskInput) => authRequest<StaffTask>("/admin/tasks", { method: "POST", body: JSON.stringify(input) });
+export const assignTask = (id: string, assigneeId: string) =>
+  authRequest<StaffTask>(`/admin/tasks/${encodeURIComponent(id)}/assign`, { method: "POST", body: JSON.stringify({ assigneeId }) });
+export const setTaskStatus = (id: string, status: TaskStatus) =>
+  authRequest<StaffTask>(`/admin/tasks/${encodeURIComponent(id)}/status`, { method: "POST", body: JSON.stringify({ status }) });
+export const deleteTask = (id: string) => authRequest<{ ok: true }>(`/admin/tasks/${encodeURIComponent(id)}`, { method: "DELETE" });

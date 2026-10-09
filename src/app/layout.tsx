@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
+import { UpdateGate } from "@/components/UpdateGate";
 
 // Poppins pour les titres (rond, chaleureux — proche de l'esprit du logo),
 // Inter pour le corps de texte (lisible, neutre). Deux familles nettement
@@ -18,6 +19,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://soorooms.vercel.app"),
   title: "SòôRooms — Hébergez. Voyagez. Vivez.",
   description:
     "Trouvez le logement idéal au Cameroun : hôtels, meublés, chambres d'hôtes et résidences étudiantes.",
@@ -41,6 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="fr" className={`${poppins.variable} ${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col bg-cream text-ink antialiased">
         <PwaRegister />
+        <UpdateGate />
         {children}
       </body>
     </html>

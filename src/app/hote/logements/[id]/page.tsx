@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import { PropertyForm } from "@/components/host/PropertyForm";
 import { RoomForm } from "@/components/host/RoomForm";
 import { Button } from "@/components/ui/Button";
+import { PropertyPhoto } from "@/components/PropertyPhoto";
+
 import {
   addPropertyPhoto,
   ApiError,
@@ -365,8 +367,7 @@ function PhotosCard({ property, reload }: CardProps) {
         <ul className="mt-4 grid grid-cols-3 gap-2">
           {photos.map((photo) => (
             <li key={photo.id} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element -- photos hébergées sur Cloudinary */}
-              <img src={photo.url} alt="" className="h-24 w-full rounded-xl object-cover" />
+             <PropertyPhoto url={photo.url} width={300} className="h-24 w-full rounded-xl object-cover" />
               <button
                 type="button"
                 onClick={() => remove(photo.id)}

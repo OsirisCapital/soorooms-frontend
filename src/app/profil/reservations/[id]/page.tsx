@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { BookingPanel } from "@/components/BookingPanel";
 import { getBooking } from "@/lib/api";
 import { useAsyncData } from "@/lib/use-async-data";
+import Link from "next/link";
 
 export default function BookingPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +21,12 @@ export default function BookingPage() {
       ) : error || !data ? (
         <p className="rounded-2xl bg-white p-6 text-center text-slate-600 shadow-sm">{error ?? "Réservation introuvable."}</p>
       ) : (
-        <BookingPanel initial={data} viewer="TRAVELER" />
+           <>
+     <BookingPanel initial={data} viewer="TRAVELER" />
+     <Link href={`/messages/${id}`} className="mt-4 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center font-semibold text-[var(--color-teal)]">
+       Envoyer un message à l&apos;hôte
+     </Link>
+   </>
       )}
     </AppShell>
   );

@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { FavoriteStar } from "@/components/FavoriteStar";
+import { PropertyPhoto } from "@/components/PropertyPhoto";
 import { Button } from "@/components/ui/Button";
 import { ApiError, createBooking, getProperty, type PropertyDetail } from "@/lib/api";
 import { formatFcfa, nightsBetween, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
@@ -82,21 +83,22 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   return (
     <>
       <div className="relative">
-      {property.photos && property.photos.length > 0 ? (
-        <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto">
-          {property.photos.map((photo) => (
-            // eslint-disable-next-line @next/next/no-img-element -- URLs externes saisies par les hôtes
-            <img
-              key={photo.id}
-              src={photo.url}
-              alt=""
-              className="h-56 w-full shrink-0 snap-center rounded-3xl object-cover shadow-md"
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="h-56 rounded-3xl shadow-md" style={{ background: HERO_GRADIENT }} aria-hidden="true" />
-      )}
+        {property.photos && property.photos.length > 0 ? (
+          <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto">
+            {property.photos.map((photo) => (
+              <PropertyPhoto
+                key={photo.id}
+                url={photo.url}
+                width={960}
+                widths={[640, 960, 1280]}
+                sizes="100vw"
+                className="h-56 w-full shrink-0 snap-center rounded-3xl object-cover shadow-md"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="h-56 rounded-3xl shadow-md" style={{ background: HERO_GRADIENT }} aria-hidden="true" />
+        )}
         <FavoriteStar propertyId={property.id} />
       </div>
 

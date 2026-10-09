@@ -1,8 +1,10 @@
+import Image from "next/image";
+
 /**
- * Reproduction du logo SòôRooms (case stylisée + toit en arc, motif de
- * porte géométrique) — recréée en SVG à partir des maquettes fournies,
- * pas un export du fichier vectoriel d'origine. À remplacer par l'asset
- * officiel dès qu'il est disponible.
+ * Logo SòôRooms, à partir des fichiers fournis (public/logo-full.png avec le nom, public/logo-mark.png
+ * la maison seule). Le fond blanc d'origine a été retiré : il se pose sur n'importe quelle couleur.
+ * À remplacer par les fichiers définitifs en gardant les mêmes noms et proportions (≈ 1,6 : 1 pour la maison
+ * seule, 1,6 : 1 pour le logo complet).
  */
 type LogoProps = {
   size?: number;
@@ -10,22 +12,22 @@ type LogoProps = {
   className?: string;
 };
 
+const FULL_RATIO = 468 / 291;
+const MARK_RATIO = 312 / 196;
+
 export function Logo({ size = 64, withWordmark = true, className = "" }: LogoProps) {
+  if (withWordmark) {
+    const height = Math.round(size * 1.5);
+    return (
+      <div className={`flex flex-col items-center ${className}`}>
+        <Image src="/logo-full.png" alt="SòôRooms" width={Math.round(height * FULL_RATIO)} height={height} priority />
+      </div>
+    );
+  }
+  const width = Math.round(size * 1.35);
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <svg width={size} height={size} viewBox="0 0 512 512" aria-hidden="true">
-        <path d="M256 72 L456 216 H396 V440 H116 V216 H56 Z" fill="#C1622E" />
-        <rect x="150" y="240" width="212" height="200" rx="10" fill="#1E4A4A" />
-        <path d="M256 240 L330 296 V440 H182 V296 Z" fill="#F2A65A" />
-        <rect x="170" y="260" width="24" height="90" fill="#F2A65A" opacity="0.85" />
-        <rect x="318" y="260" width="24" height="90" fill="#E3EFED" opacity="0.85" />
-      </svg>
-      {withWordmark && (
-        <p className="font-display text-2xl font-bold tracking-tight">
-          <span className="text-[var(--color-terracotta)]">Sòô</span>
-          <span className="text-[var(--color-teal)]">Rooms</span>
-        </p>
-      )}
+    <div className={`flex items-center ${className}`}>
+      <Image src="/logo-mark.png" alt="" aria-hidden="true" width={width} height={Math.round(width / MARK_RATIO)} />
     </div>
   );
 }

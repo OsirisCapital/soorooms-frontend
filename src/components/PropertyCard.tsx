@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FavoriteStar } from "@/components/FavoriteStar";
+import { PropertyPhoto } from "./PropertyPhoto";
 
 /** Sans photo, une case colorée (stable pour un même logement) tient la place de l'image. */
 const PLACEHOLDER_COLORS = [
@@ -38,9 +39,8 @@ export function PropertyCard({ propertyId, title, subtitle, priceLabel, photoUrl
     >
       <Link href={`/logements/${propertyId}`} className="absolute inset-0 block">
         {photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- URLs externes saisies par les hôtes
-          <img src={photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
-        )}
+  <PropertyPhoto url={photoUrl} width={600} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+)}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-4 pt-12 text-white">
           <h3 className="line-clamp-2 font-display text-sm font-semibold leading-snug">{title}</h3>
           <p className="mt-0.5 text-xs text-white/85">{subtitle}</p>
