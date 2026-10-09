@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { EmailPreference } from "@/components/EmailPreference";
 import { Logo } from "@/components/Logo";
 import {
   isInternalPath,
@@ -126,6 +127,7 @@ export default function NotificationsPage() {
 
   return (
     <AppShell title="Notifications">
+      <EmailPreference />
       <div className="mb-4 flex justify-end">
         <div className="flex rounded-full bg-[var(--color-cream-soft)] p-1 text-sm font-medium">
           {(["all", "unread"] as const).map((value) => (
