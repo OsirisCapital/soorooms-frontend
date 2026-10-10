@@ -35,11 +35,15 @@ export interface PayoutItem {
   beneficiary: { channel: PayoutChannel | null; phone: string; accountName: string | null } | null;
   canSend: boolean;
   canCheck: boolean;
+  canMarkPaid: boolean;
 }
 
 export const listPayouts = (view: "open" | "done") => authRequest<PayoutItem[]>(`/admin/payouts?view=${view}`);
 export const sendPayout = (id: string) => authRequest<PayoutItem | null>(`/admin/payouts/${encodeURIComponent(id)}/send`, { method: "POST" });
 export const checkPayout = (id: string) => authRequest<PayoutItem | null>(`/admin/payouts/${encodeURIComponent(id)}/check`, { method: "POST" });
+
+export const markPayoutPaid = (id: string, reference: string) =>
+  authRequest<PayoutItem | null>(`/admin/payouts/${encodeURIComponent(id)}/mark-paid`, { method: "POST", body: JSON.stringify({ reference }) });
 
 export interface PayoutDetails {
   channel: PayoutChannel | null;

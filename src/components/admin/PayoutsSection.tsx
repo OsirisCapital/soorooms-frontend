@@ -6,6 +6,7 @@ import { formatDay, formatFcfa } from "@/lib/booking-labels";
 import {
   checkPayout,
   listPayouts,
+  markPayoutPaid,
   PAYOUT_CHANNEL_LABEL,
   PAYOUT_STATUS_LABEL,
   sendPayout,
@@ -26,18 +27,24 @@ const actionClass =
   "rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-60";
 
 function PayoutCard({ payout, onChange }: { payout: PayoutItem; onChange: (next: PayoutItem | null) => void }) {
-  const [busy, setBusy] = useState<"send" | "check" | null>(null);
+  const [busy, setBusy] = useState<"send" | "check" | "manual" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(kind: "send" | "check") {
+  async function run(kind: "send" | "check" | "manual") {
     if (kind === "send") {
       const who = payout.details ? `${payout.details.accountName} (${payout.details.phone})` : "l'hôte";
       if (!window.confirm(`Envoyer ${formatFcfa(payout.amount)} à ${who} ?`)) return;
     }
+    let proof = "";
+    if (kind === "manual") {
+      const who = payout.details ? `${payout.details.accountName} (${payout.details.phone})` : "l'hôte";
+      proof = (window.prompt(`Vous avez déjà versé ${formatFcfa(payout.amount)} à ${who} par Orange Money / MTN ?\nSaisissez la référence de l'opération :`) ?? "").trim();
+      if (!proof) return;
+    }
     setError(null);
     setBusy(kind);
     try {
-      onChange(await (kind === "send" ? sendPayout(payout.id) : checkPayout(payout.id)));
+      onChange(await (kind === "send" ? sendPayout(payout.id) : kind === "check" ? checkPayout(payout.id) : markPayoutPaid(payout.id, proof)));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Action impossible. Réessayez.");
     } finally {
@@ -88,7 +95,7 @@ function PayoutCard({ payout, onChange }: { payout: PayoutItem; onChange: (next:
         {payout.paidAt ? ` · versé le ${formatDay(payout.paidAt)}` : ""}
       </p>
 
-      {(payout.canSend || payout.canCheck) && (
+      {(payout.canSend || payout.canCheck || payout.canMarkPaid) && (
         <div className="mt-3 flex flex-wrap gap-2">
           {payout.canSend && (
             <button type="button" disabled={busy !== null} onClick={() => run("send")} className={`${actionClass} bg-[var(--color-terracotta)] text-white`}>
@@ -98,6 +105,11 @@ function PayoutCard({ payout, onChange }: { payout: PayoutItem; onChange: (next:
           {payout.canCheck && (
             <button type="button" disabled={busy !== null} onClick={() => run("check")} className={`${actionClass} border border-[var(--color-border)] bg-white text-[var(--color-ink)]`}>
               {busy === "check" ? "Vérification…" : "Vérifier l'état"}
+            </button>
+          )}
+          {payout.canMarkPaid && (
+            <button type="button" disabled={busy !== null} onClick={() => run("manual")} className={`${actionClass} border border-[var(--color-border)] bg-white text-[var(--color-ink)]`}>
+              {busy === "manual" ? "Enregistrement…" : "Marquer comme versé (manuel)"}
             </button>
           )}
         </div>
