@@ -9,6 +9,7 @@ export type Permission =
   | "kyc.review"
   | "disputes.view"
   | "payments.view"
+  | "payouts.manage"
   | "users.view"
   | "support.manage"
   | "announcements.manage"
@@ -147,6 +148,7 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "kyc.review": "Accréditations (identités)",
   "disputes.view": "Litiges",
   "payments.view": "Paiements",
+  "payouts.manage": "Versements aux hôtes",
   "users.view": "Fiches utilisateurs",
   "support.manage": "Support",
   "announcements.manage": "Annonces",

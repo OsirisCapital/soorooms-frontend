@@ -66,6 +66,12 @@ export default function ParametresPage() {
           </div>
         )}
       </section>
+      {hostEnabled && (
+  <Link href="/profil/parametres/versement" className="mt-4 block rounded-3xl bg-white p-5 shadow-sm">
+    <h2 className="font-display text-lg font-semibold text-[var(--color-teal)]">Mes versements</h2>
+    <p className="mt-1 text-sm text-slate-600">Le numéro Mobile Money où vous recevez l&apos;argent de vos séjours.</p>
+  </Link>
+)}
 
       <p className="mt-6 text-sm text-slate-500">
         Langue, notifications et sécurité du compte arriveront dans une prochaine version.{" "}
