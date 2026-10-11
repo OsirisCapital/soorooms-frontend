@@ -8,7 +8,7 @@ export const LEGAL = {
   publisher: "AlterConcept",
   country: "Cameroun",
   /** Adresse e-mail publique pour les demandes (droits sur les données, signalements). */
-  CONTACT_EMAIL: "soorooms00@gmail.com",
+  CONTACT_EMAIL: "contact@soorooms.com",
   /** Adresse postale ou siège de l'éditeur, si vous souhaitez l'afficher. */
   ADDRESS: "",
   updatedAt: "8 octobre 2026",
