@@ -47,3 +47,15 @@ h1, h2, h3, .font-display {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Impression du reçu : on ne garde que le document. */
+@media print {
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

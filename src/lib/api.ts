@@ -382,6 +382,28 @@ export function createBooking(payload: CreateBookingPayload) {
   return authRequest<BookingDetail>("/bookings", { method: "POST", body: JSON.stringify(payload) });
 }
 
+/** Reçu voyageur — GET /bookings/:id/receipt (disponible une fois le paiement effectué). */
+export interface BookingReceipt {
+  reference: string;
+  issuedAt: string;
+  travelerName: string;
+  property: { title: string; city: string; quarter: string };
+  roomName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  nights: number;
+  stayPrice: number;
+  travelerFee: number;
+  travelerFeePercent: number | null;
+  totalPaid: number;
+  paymentMethod: string;
+  refunded: boolean;
+}
+
+export function getReceipt(id: string) {
+  return authRequest<BookingReceipt>(`/bookings/${encodeURIComponent(id)}/receipt`);
+}
+
 export function getBooking(id: string) {
   return authRequest<BookingDetail>(`/bookings/${encodeURIComponent(id)}`);
 }

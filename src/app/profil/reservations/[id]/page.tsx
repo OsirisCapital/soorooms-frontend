@@ -23,6 +23,11 @@ export default function BookingPage() {
       ) : (
            <>
      <BookingPanel initial={data} viewer="TRAVELER" />
+     {["CONFIRMED_ESCROW", "COMPLETED", "DISPUTED"].includes(data.status) && (
+       <Link href={`/profil/reservations/${id}/recu`} className="mt-4 block rounded-full bg-[var(--color-teal-600)] px-5 py-3 text-center font-semibold text-white">
+         Voir mon reçu
+       </Link>
+     )}
      <Link href={`/messages/${id}`} className="mt-4 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center font-semibold text-[var(--color-teal)]">
        Envoyer un message à l&apos;hôte
      </Link>
