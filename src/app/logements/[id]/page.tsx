@@ -57,6 +57,9 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const [checkIn, setCheckIn] = useState(initial.get("checkIn") ?? "");
   const [checkOut, setCheckOut] = useState(initial.get("checkOut") ?? "");
   const [offer, setOffer] = useState("");
+  const [forSomeone, setForSomeone] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -96,10 +99,20 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
       return setError("Le montant proposé n'est pas valide.");
     }
 
+    if (forSomeone && guestName.trim().length < 2) {
+      return setError("Indiquez le nom de la personne qui séjournera.");
+    }
+
     setError(null);
     setBusy(true);
     try {
-      const booking = await createBooking({ roomId: room.id, checkInDate: checkIn, checkOutDate: checkOut, proposedPrice });
+      const booking = await createBooking({
+        roomId: room.id,
+        checkInDate: checkIn,
+        checkOutDate: checkOut,
+        proposedPrice,
+        ...(forSomeone ? { guestName: guestName.trim(), guestPhone: guestPhone.trim() || undefined } : {}),
+      });
       router.push(`/profil/reservations/${booking.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Réservation impossible. Réessayez.");
@@ -233,6 +246,31 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                 {nights} nuit{nights > 1 ? "s" : ""} au tarif affiché :{" "}
                 <strong className="text-[var(--color-ink)]">{formatFcfa(listedTotal)}</strong>
               </p>
+            )}
+
+            <label className="mt-4 flex items-center gap-2 text-sm text-[var(--color-ink)]">
+              <input type="checkbox" checked={forSomeone} onChange={(e) => setForSomeone(e.target.checked)} />
+              Je réserve pour quelqu&apos;un d&apos;autre
+            </label>
+            {forSomeone && (
+              <div className="mt-2 grid grid-cols-1 gap-2">
+                <input
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Nom de la personne qui séjournera"
+                  aria-label="Nom de l'occupant"
+                  className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]"
+                />
+                <input
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="Son téléphone (facultatif)"
+                  aria-label="Téléphone de l'occupant"
+                  inputMode="tel"
+                  className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]"
+                />
+                <p className="text-xs text-slate-500">Vous restez le payeur et le contact de l&apos;hôte ; le reçu est à votre nom.</p>
+              </div>
             )}
 
             <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">

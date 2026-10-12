@@ -358,6 +358,10 @@ export interface BookingDetail {
   travelerConfirmedAt: string | null;
   hostConfirmedAt: string | null;
   disputeReason: string | null;
+  /** Occupant, quand la réservation est faite pour quelqu'un d'autre. */
+  guestName?: string | null;
+  guestPhone?: string | null;
+  currency?: string;
   createdAt: string;
   /** Du plus récent au plus ancien : offers[0] est l'offre en cours. */
   offers: PriceOffer[];
@@ -376,6 +380,9 @@ export interface CreateBookingPayload {
   checkOutDate: string;
   /** Prix total proposé pour le séjour ; si absent, le backend applique le tarif affiché. */
   proposedPrice?: number;
+  /** Réservation pour une autre personne : son nom (et un téléphone facultatif). */
+  guestName?: string;
+  guestPhone?: string;
 }
 
 export function createBooking(payload: CreateBookingPayload) {
@@ -387,6 +394,8 @@ export interface BookingReceipt {
   reference: string;
   issuedAt: string;
   travelerName: string;
+  guestName?: string | null;
+  currency?: string;
   property: { title: string; city: string; quarter: string };
   roomName: string;
   checkInDate: string;

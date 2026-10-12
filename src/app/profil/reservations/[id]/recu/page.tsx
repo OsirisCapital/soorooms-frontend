@@ -31,8 +31,14 @@ export default function ReceiptPage() {
             </header>
 
             <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="text-slate-500">Voyageur</dt>
+              <dt className="text-slate-500">{receipt.guestName ? "Payeur" : "Voyageur"}</dt>
               <dd className="text-right text-[var(--color-ink)]">{receipt.travelerName}</dd>
+              {receipt.guestName && (
+                <>
+                  <dt className="text-slate-500">Séjour pour</dt>
+                  <dd className="text-right text-[var(--color-ink)]">{receipt.guestName}</dd>
+                </>
+              )}
               <dt className="text-slate-500">Logement</dt>
               <dd className="text-right text-[var(--color-ink)]">
                 {receipt.property.title}

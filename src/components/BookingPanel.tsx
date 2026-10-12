@@ -154,6 +154,12 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
               ? `Offre en cours : ${formatFcfa(current.amount)}`
               : "—"}
         </p>
+        {booking.guestName && (
+          <p className="mt-1 text-sm text-slate-600">
+            Séjour pour <strong className="text-[var(--color-ink)]">{booking.guestName}</strong>
+            {booking.guestPhone ? ` · ${booking.guestPhone}` : ""}
+          </p>
+        )}
         <Link href={propertyHref} className="mt-2 inline-block text-sm font-semibold text-[var(--color-terracotta)]">
           {isTraveler ? "Voir le logement" : "Gérer le logement"}
         </Link>
