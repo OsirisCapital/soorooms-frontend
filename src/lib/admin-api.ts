@@ -15,7 +15,8 @@ export type Permission =
   | "announcements.manage"
   | "releases.manage"
   | "staff.manage"
-  | "audit.view";
+  | "audit.view"
+  | "settings.manage";
 
 export type StaffRole = "SUPER_ADMIN" | "KYC_REVIEWER" | "SUPPORT" | "FINANCE" | "CONTENT";
 
@@ -155,6 +156,7 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "releases.manage": "Versions de l'application",
   "staff.manage": "Équipe et tâches",
   "audit.view": "Journal",
+  "settings.manage": "Commissions et frais",
 };
 
 export interface StaffMember {

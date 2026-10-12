@@ -17,6 +17,8 @@ import {
   type OfferStatus,
 } from "@/lib/api";
 import { BOOKING_STATUS_LABEL, formatDay, formatFcfa, nightsBetween } from "@/lib/booking-labels";
+import { formatPercent, getCurrentFees, travelerFeeFor } from "@/lib/fees-api";
+import { useAsyncData } from "@/lib/use-async-data";
 import { rememberPendingPayment, usePaymentReturn, type PaymentReturnState } from "@/lib/use-payment-return";
 
 export type Viewer = "TRAVELER" | "HOST";
@@ -68,6 +70,10 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
   const [reason, setReason] = useState("");
   const [showDispute, setShowDispute] = useState(false);
   const bookingId = useRef(initial.id);
+  // Frais de service du voyageur, annoncés avant le paiement (le serveur applique les mêmes taux).
+  const fees = useAsyncData("fees-current", getCurrentFees).data;
+  const stayPrice = booking.totalPrice != null ? Number(booking.totalPrice) : null;
+  const serviceFee = fees && stayPrice != null ? travelerFeeFor(stayPrice, fees.travelerFeePercent) : 0;
 
   // Au retour d'un autre onglet (paiement, par exemple), on relit l'état : le
   // passage à « Confirmée » est fait par le webhook du backend.
@@ -271,6 +277,22 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                   {returnMessage.text}
                 </p>
               )}
+              {stayPrice != null && serviceFee > 0 && fees && (
+                <dl className="mt-3 flex flex-col gap-1 rounded-xl bg-[var(--color-cream-soft)] px-3 py-2 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-600">Séjour</dt>
+                    <dd className="font-semibold text-[var(--color-ink)]">{formatFcfa(stayPrice)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-600">Frais de service ({formatPercent(fees.travelerFeePercent)})</dt>
+                    <dd className="font-semibold text-[var(--color-ink)]">{formatFcfa(serviceFee)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3 border-t border-[var(--color-border)] pt-1">
+                    <dt className="font-semibold text-[var(--color-ink)]">Total à payer</dt>
+                    <dd className="font-bold text-[var(--color-teal)]">{formatFcfa(stayPrice + serviceFee)}</dd>
+                  </div>
+                </dl>
+              )}
               <div className="mt-4 flex flex-col gap-3">
                 {/* Toujours cliquable, y compris pendant la vérification : un paiement abandonné ne doit jamais enfermer le voyageur. */}
                 <Button
@@ -284,7 +306,7 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                     })
                   }
                 >
-                  Payer {booking.totalPrice != null ? formatFcfa(booking.totalPrice) : ""}
+                  Payer {stayPrice != null ? formatFcfa(stayPrice + serviceFee) : ""}
                 </Button>
                 <Button
                   variant="outline"

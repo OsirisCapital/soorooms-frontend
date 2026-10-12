@@ -12,6 +12,7 @@ import {
   type FinanceReport,
 } from "@/lib/finance-api";
 import { PAYOUT_STATUS_LABEL } from "@/lib/payouts-api";
+import { formatPercent, getCurrentFees } from "@/lib/fees-api";
 import { useAsyncData } from "@/lib/use-async-data";
 
 const RANGES = [7, 30, 90, 365] as const;
@@ -39,6 +40,7 @@ export function FinanceReportView({ mode, load }: { mode: "admin" | "host"; load
   const [range, setRange] = useState<(typeof RANGES)[number]>(30);
   const { data: r, loading, error } = useAsyncData(`${mode}-finance-${range}`, () => load(range));
   const host = mode === "host";
+  const fees = useAsyncData("fees-current", getCurrentFees).data;
 
   const rangeButtons = (
     <div role="group" aria-label="Période du rapport" className="flex flex-wrap gap-2">
@@ -161,6 +163,13 @@ export function FinanceReportView({ mode, load }: { mode: "admin" | "host"; load
             {r.lines.length > 10 && <p className="mt-2 text-xs text-slate-500">Les {r.lines.length} opérations de la période sont dans l&apos;export CSV.</p>}
           </section>
         </>
+      )}
+
+      {host && fees && (
+        <p className="rounded-xl bg-[var(--color-teal-100)] px-3 py-2 text-sm text-[var(--color-teal)]">
+          Commission SòôRooms actuelle : {formatPercent(fees.hostCommissionPercent)}
+          {fees.launchActive && fees.launchEndsAt ? ` (offre de lancement jusqu'au ${fees.launchEndsAt.slice(0, 10)}, puis ${formatPercent(fees.standardHostCommissionPercent)})` : ""}.
+        </p>
       )}
 
       <p className="text-xs leading-relaxed text-slate-500">
