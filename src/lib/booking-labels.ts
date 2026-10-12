@@ -26,7 +26,24 @@ export const PROPERTY_TYPE_LABEL: Record<string, string> = {
   FURNISHED_APARTMENT: "Appartement meublé",
   STUDENT_ROOM: "Chambre étudiante",
   GUEST_HOUSE: "Maison d'hôtes",
+  EVENT_HALL: "Salle de fêtes",
 };
+
+export const EVENT_SLOT_LABEL: Record<string, string> = {
+  DAY: "Journée",
+  EVENING: "Soirée",
+  FULL: "24 h (jour et soir)",
+};
+
+export const EVENT_TYPES = ["Mariage", "Anniversaire", "Baptême", "Réunion / conférence", "Cérémonie", "Autre"];
+
+/** Lendemain d'une date YYYY-MM-DD (une salle est réservée pour une date). */
+export function nextDay(date: string) {
+  if (!date) return "";
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 /** Nombre de nuits entre deux dates YYYY-MM-DD (0 si invalide). */
 export function nightsBetween(checkIn: string, checkOut: string) {

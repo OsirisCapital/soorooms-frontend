@@ -75,6 +75,17 @@ export default function ManagePropertyPage() {
                 </Card>
               )}
               <RoomsCard property={property} reload={reload} />
+              {property.propertyType === "EVENT_HALL" && (
+                <Card title="Options payantes">
+                  <p className="text-sm text-slate-600">Sono, traiteur, décoration, chaises… proposées au client à la réservation.</p>
+                  <Link
+                    href={`/hote/logements/${property.id}/options`}
+                    className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+                  >
+                    Gérer les options
+                  </Link>
+                </Card>
+              )}
               <AmenitiesCard property={property} reload={reload} />
               <PhotosCard property={property} reload={reload} />
               <InfoCard property={property} reload={reload} />
@@ -231,7 +242,7 @@ function RoomsCard({ property, reload }: CardProps) {
   }
 
   return (
-    <Card title="Chambres et prix">
+    <Card title={property.propertyType === "EVENT_HALL" ? "Salle et tarif" : "Chambres et prix"}>
       {property.rooms.length === 0 && mode !== "adding" && (
         <p className="text-sm text-slate-600">
           Aucune chambre pour l&apos;instant. Pour une maison ou un appartement entier, créez une seule chambre qui le représente.
@@ -243,6 +254,7 @@ function RoomsCard({ property, reload }: CardProps) {
           mode === room.id ? (
             <li key={room.id} className="rounded-2xl border border-[var(--color-border)] p-4">
               <RoomForm
+                hall={property.propertyType === "EVENT_HALL"}
                 initial={room}
                 submitLabel="Enregistrer"
                 onCancel={() => setMode("idle")}
@@ -258,11 +270,12 @@ function RoomsCard({ property, reload }: CardProps) {
               <div className="min-w-0">
                 <p className="font-medium text-[var(--color-ink)]">{room.name}</p>
                 <p className="text-xs text-slate-500">
-                  {room.roomType} · {room.maxGuests} voyageur{room.maxGuests > 1 ? "s" : ""} · {room.bedroomCount} chambre
-                  {room.bedroomCount > 1 ? "s" : ""} · {room.bedCount} lit{room.bedCount > 1 ? "s" : ""}
+                  {property.propertyType === "EVENT_HALL"
+                    ? `${room.roomType} · jusqu'à ${room.maxGuests} invités`
+                    : `${room.roomType} · ${room.maxGuests} voyageur${room.maxGuests > 1 ? "s" : ""} · ${room.bedroomCount} chambre${room.bedroomCount > 1 ? "s" : ""} · ${room.bedCount} lit${room.bedCount > 1 ? "s" : ""}`}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--color-teal)]">
-                  {Number(room.basePrice).toLocaleString("fr-FR")} FCFA/nuit
+                  {Number(room.basePrice).toLocaleString("fr-FR")} FCFA/{property.propertyType === "EVENT_HALL" ? "événement" : "nuit"}
                   {room.unitCount > 1 && <span className="ml-2 font-normal text-slate-500">· {room.unitCount} unités</span>}
                 </p>
                 <RoomPhotos propertyId={property.id} room={room} reload={reload} />
@@ -285,7 +298,8 @@ function RoomsCard({ property, reload }: CardProps) {
       {mode === "adding" ? (
         <div className="mt-4 rounded-2xl border border-[var(--color-border)] p-4">
           <RoomForm
-            submitLabel="Ajouter la chambre"
+            hall={property.propertyType === "EVENT_HALL"}
+            submitLabel={property.propertyType === "EVENT_HALL" ? "Ajouter la salle" : "Ajouter la chambre"}
             requirePhotos
             onCancel={() => setMode("idle")}
             onSubmit={async (payload, files) => {

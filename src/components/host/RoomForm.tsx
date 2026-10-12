@@ -15,11 +15,13 @@ type Props = {
   onSubmit: (payload: RoomPayload, photos: File[]) => Promise<void>;
   /** Création : au moins une photo est demandée dès le départ. */
   requirePhotos?: boolean;
+  /** Salle de fêtes : tarif par événement et capacité, sans chambres ni lits. */
+  hall?: boolean;
   onCancel?: () => void;
 };
 
 /** Formulaire d'une chambre (ou d'un logement entier représenté par une seule chambre). */
-export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false }: Props) {
+export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false, hall = false }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [roomType, setRoomType] = useState(initial?.roomType ?? "Chambre");
   const [basePrice, setBasePrice] = useState(initial ? String(Number(initial.basePrice)) : "");
@@ -38,14 +40,14 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
     event.preventDefault();
     const price = Number(basePrice);
     const guests = Number(maxGuests);
-    const bedrooms = Number(bedroomCount);
-    const beds = Number(bedCount);
-    const units = Number(unitCount);
+    const bedrooms = hall ? 1 : Number(bedroomCount);
+    const beds = hall ? 1 : Number(bedCount);
+    const units = hall ? 1 : Number(unitCount);
 
     if (name.trim().length < 2) return setError("Donnez un nom à la chambre (2 caractères minimum).");
-    if (basePrice.trim() === "" || !Number.isFinite(price) || price < 0) return setError("Indiquez un prix par nuit valide.");
+    if (basePrice.trim() === "" || !Number.isFinite(price) || price < 0) return setError(hall ? "Indiquez un tarif valide." : "Indiquez un prix par nuit valide.");
     if (![guests, bedrooms, beds].every((n) => Number.isInteger(n) && n >= 1)) {
-      return setError("Voyageurs, chambres et lits doivent être des nombres entiers d'au moins 1.");
+      return setError(hall ? "La capacité doit être un nombre entier d'au moins 1." : "Voyageurs, chambres et lits doivent être des nombres entiers d'au moins 1.");
     }
 
     if (!Number.isInteger(units) || units < 1 || units > 500) {
@@ -59,7 +61,7 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
     try {
       await onSubmit({
         name: name.trim(),
-        roomType: roomType.trim() || "Chambre",
+        roomType: roomType.trim() || (hall ? "Salle" : "Chambre"),
         basePrice: price,
         maxGuests: guests,
         bedroomCount: bedrooms,
@@ -89,14 +91,18 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <TextField placeholder="Nom (ex. Chambre 1, Villa entière)" value={name} onChange={(e) => setName(e.target.value)} required />
+      <TextField placeholder={hall ? "Nom (ex. Grande salle, Salle VIP)" : "Nom (ex. Chambre 1, Villa entière)"} value={name} onChange={(e) => setName(e.target.value)} required />
       <TextField placeholder="Type" value={roomType} onChange={(e) => setRoomType(e.target.value)} list="room-types" />
       <datalist id="room-types">
         {ROOM_TYPES.map((type) => (
           <option key={type} value={type} />
         ))}
       </datalist>
-      {numberField("Prix par nuit (FCFA)", basePrice, setBasePrice, 0)}
+      {numberField(hall ? "Tarif par événement (FCFA)" : "Prix par nuit (FCFA)", basePrice, setBasePrice, 0)}
+      {hall ? (
+        numberField("Capacité (nombre d'invités)", maxGuests, setMaxGuests)
+      ) : (
+        <>
       <div>
         {numberField("Nombre de chambres de ce type", unitCount, setUnitCount)}
         <p className="mt-1 text-xs text-slate-500">
@@ -108,6 +114,8 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
         {numberField("Chambres", bedroomCount, setBedroomCount)}
         {numberField("Lits", bedCount, setBedCount)}
       </div>
+        </>
+      )}
       {requirePhotos && (
         <div>
           <input

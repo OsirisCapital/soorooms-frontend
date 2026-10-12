@@ -101,7 +101,7 @@ export function googleAuthUrl() {
 // Recherche publique de logements — GET /search/rooms (aucun token requis)
 // ---------------------------------------------------------------------
 
-export type PropertyType = "HOTEL" | "FURNISHED_APARTMENT" | "STUDENT_ROOM" | "GUEST_HOUSE";
+export type PropertyType = "HOTEL" | "FURNISHED_APARTMENT" | "STUDENT_ROOM" | "GUEST_HOUSE" | "EVENT_HALL";
 
 export interface SearchRoomsParams {
   city?: string;
@@ -304,6 +304,14 @@ export interface PropertyRoom {
   photos?: PropertyPhoto[];
 }
 
+export interface HallOption {
+  id: string;
+  name: string;
+  price: string | number;
+}
+
+export type EventSlot = "DAY" | "EVENING" | "FULL";
+
 export interface PropertyDetail {
   id: string;
   title: string;
@@ -321,6 +329,8 @@ export interface PropertyDetail {
     additionalEquipments: string[];
   } | null;
   rooms: PropertyRoom[];
+  /** Options payantes d'une salle de fêtes. */
+  hallOptions?: HallOption[];
   photos?: PropertyPhoto[];
   identityVerified?: boolean;
   isVerifiedByAgent?: boolean;
@@ -361,6 +371,11 @@ export interface BookingDetail {
   /** Occupant, quand la réservation est faite pour quelqu'un d'autre. */
   guestName?: string | null;
   guestPhone?: string | null;
+  /** Salle de fêtes : détails de l'événement (null pour un séjour). */
+  eventType?: string | null;
+  eventSlot?: EventSlot | null;
+  eventGuests?: number | null;
+  eventOptions?: { id: string; name: string; price: number }[] | null;
   currency?: string;
   createdAt: string;
   /** Du plus récent au plus ancien : offers[0] est l'offre en cours. */
@@ -377,7 +392,13 @@ export interface BookingDetail {
 export interface CreateBookingPayload {
   roomId: string;
   checkInDate: string; // YYYY-MM-DD
-  checkOutDate: string;
+  /** Inutile pour une salle de fêtes (un événement = une date). */
+  checkOutDate?: string;
+  /** Salle de fêtes uniquement. */
+  eventType?: string;
+  eventSlot?: EventSlot;
+  eventGuests?: number;
+  optionIds?: string[];
   /** Prix total proposé pour le séjour ; si absent, le backend applique le tarif affiché. */
   proposedPrice?: number;
   /** Réservation pour une autre personne : son nom (et un téléphone facultatif). */
