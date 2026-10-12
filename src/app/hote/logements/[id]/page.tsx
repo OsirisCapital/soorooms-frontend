@@ -11,16 +11,19 @@ import { PropertyPhoto } from "@/components/PropertyPhoto";
 
 import {
   addPropertyPhoto,
+  addRoomPhoto,
   ApiError,
   createRoom,
   deleteRoom,
   getMyProperty,
   publishProperty,
   removePropertyPhoto,
+  removeRoomPhoto,
   updateAmenities,
   updateProperty,
   updateRoom,
   type HostProperty,
+  type PropertyRoom,
 } from "@/lib/api";
 import { PROPERTY_STATUS_LABEL, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
@@ -84,6 +87,7 @@ function PublishCard({ property, reload }: CardProps) {
   const [error, setError] = useState<string | null>(null);
   const me = useMe();
   const noRoom = property.rooms.length === 0;
+  const roomsWithoutPhoto = property.rooms.filter((r) => (r.photos ?? []).length === 0);
   // Le serveur l'impose de toute façon ; on prévient ici pour ne pas laisser cliquer dans le vide.
   const emailMissing = me !== null && !me.emailVerifiedAt;
 
@@ -114,7 +118,7 @@ function PublishCard({ property, reload }: CardProps) {
       ) : (
         <>
           <p className="text-sm text-slate-600">
-            Ce logement n&apos;est pas encore visible. La publication nécessite au moins une chambre, une adresse
+            Ce logement n&apos;est pas encore visible. La publication nécessite au moins une chambre avec une photo, une adresse
             e-mail vérifiée et une vérification d&apos;identité (KYC) approuvée.
           </p>
           {emailMissing && (
@@ -126,6 +130,11 @@ function PublishCard({ property, reload }: CardProps) {
             </p>
           )}
           {noRoom && <p className="mt-2 text-sm text-slate-500">Ajoutez d&apos;abord une chambre ci-dessous.</p>}
+          {!noRoom && roomsWithoutPhoto.length > 0 && (
+            <p className="mt-2 text-sm text-[var(--color-terracotta-dark)]">
+              Ajoutez au moins une photo à : {roomsWithoutPhoto.map((r) => r.name).join(", ")}.
+            </p>
+          )}
           {error && (
             <p className="mt-3 text-sm text-red-500">
               {error}{" "}
@@ -141,7 +150,7 @@ function PublishCard({ property, reload }: CardProps) {
             </p>
           )}
           <div className="mt-4">
-            <Button onClick={publish} loading={busy} disabled={noRoom || emailMissing}>
+            <Button onClick={publish} loading={busy} disabled={noRoom || emailMissing || roomsWithoutPhoto.length > 0}>
               Publier le logement
             </Button>
           </div>
@@ -201,7 +210,9 @@ function RoomsCard({ property, reload }: CardProps) {
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--color-teal)]">
                   {Number(room.basePrice).toLocaleString("fr-FR")} FCFA/nuit
+                  {room.unitCount > 1 && <span className="ml-2 font-normal text-slate-500">· {room.unitCount} unités</span>}
                 </p>
+                <RoomPhotos propertyId={property.id} room={room} reload={reload} />
               </div>
               <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
                 <button type="button" onClick={() => setMode(room.id)} className="font-semibold text-[var(--color-teal-600)]">
@@ -238,6 +249,76 @@ function RoomsCard({ property, reload }: CardProps) {
         </div>
       )}
     </Card>
+  );
+}
+
+// Photos d'un type de chambre : au moins une est exigée pour publier.
+function RoomPhotos({ propertyId, room, reload }: { propertyId: string; room: PropertyRoom; reload: () => Promise<unknown> }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const photos = room.photos ?? [];
+
+  async function handleFiles(event: React.ChangeEvent<HTMLInputElement>) {
+    const files: File[] = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+    setError(null);
+    let failed: string | null = null;
+    for (const [index, file] of files.entries()) {
+      setProgress(`Envoi ${index + 1}/${files.length}…`);
+      try {
+        await addRoomPhoto(propertyId, room.id, await uploadFile(file, "property_photo"));
+      } catch (err) {
+        failed = `${file.name} : ${uploadErrorMessage(err)}`;
+        break;
+      }
+    }
+    await reload();
+    setProgress(null);
+    if (failed) setError(failed);
+  }
+
+  async function remove(photoId: string) {
+    setError(null);
+    try {
+      await removeRoomPhoto(propertyId, room.id, photoId);
+      await reload();
+    } catch (err) {
+      setError(messageOf(err));
+    }
+  }
+
+  return (
+    <div className="mt-3">
+      {photos.length > 0 && (
+        <ul className="grid grid-cols-4 gap-2">
+          {photos.map((photo) => (
+            <li key={photo.id} className="relative">
+              <PropertyPhoto url={photo.url} width={200} className="h-16 w-full rounded-lg object-cover" />
+              <button
+                type="button"
+                onClick={() => remove(photo.id)}
+                aria-label="Supprimer la photo"
+                className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <input ref={inputRef} type="file" accept={ACCEPT_ATTRIBUTE.property_photo} multiple onChange={handleFiles} className="hidden" />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={progress !== null}
+        className="mt-2 text-xs font-semibold text-[var(--color-teal-600)] disabled:opacity-60"
+      >
+        {progress ?? (photos.length === 0 ? "+ Ajouter une photo (obligatoire)" : "+ Ajouter des photos")}
+      </button>
+      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+    </div>
   );
 }
 

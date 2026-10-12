@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { FavoriteStar } from "@/components/FavoriteStar";
 import { PropertyPhoto } from "@/components/PropertyPhoto";
@@ -54,8 +54,28 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const [busy, setBusy] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
-  const room = property.rooms.find((r) => r.id === roomId);
   const nights = nightsBetween(checkIn, checkOut);
+
+  // Une fois les deux dates choisies, on redemande les unités libres sur ce séjour précis.
+  const [leftByRoom, setLeftByRoom] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (nights < 1) return;
+    let cancelled = false;
+    getProperty(property.id, { checkInDate: checkIn, checkOutDate: checkOut })
+      .then((fresh) => {
+        if (!cancelled) setLeftByRoom(Object.fromEntries(fresh.rooms.map((r) => [r.id, r.unitsLeft ?? r.unitCount])));
+      })
+      .catch(() => {
+        if (!cancelled) setLeftByRoom({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [property.id, checkIn, checkOut, nights]);
+
+  const leftOf = (r: PropertyDetail["rooms"][number]) => (nights >= 1 ? leftByRoom[r.id] : undefined) ?? r.unitsLeft ?? r.unitCount;
+  const room = property.rooms.find((r) => r.id === roomId);
+  const roomFull = room ? leftOf(room) < 1 : false;
   const listedTotal = room ? Number(room.basePrice) * nights : 0;
   const amenities = amenityLabels(property.amenities);
 
@@ -142,14 +162,26 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                     <input type="radio" name="room" value={r.id} checked={r.id === roomId} onChange={() => setRoomId(r.id)} />
                     <span>
                       <span className="block font-medium text-[var(--color-ink)]">{r.name}</span>
+                      {r.photos && r.photos.length > 0 && (
+                        <span className="mb-2 mt-1 flex gap-1.5">
+                          {r.photos.slice(0, 3).map((photo) => (
+                            <PropertyPhoto key={photo.id} url={photo.url} width={200} className="h-14 w-20 rounded-lg object-cover" />
+                          ))}
+                        </span>
+                      )}
                       <span className="block text-xs text-slate-500">
                         {r.roomType} · {r.maxGuests} voyageur{r.maxGuests > 1 ? "s" : ""} · {r.bedroomCount} chambre
                         {r.bedroomCount > 1 ? "s" : ""} · {r.bedCount} lit{r.bedCount > 1 ? "s" : ""}
                       </span>
                     </span>
                   </span>
-                  <span className="shrink-0 text-sm font-semibold text-[var(--color-teal)]">
-                    {Number(r.basePrice).toLocaleString("fr-FR")} FCFA/nuit
+                  <span className="shrink-0 text-right">
+                    <span className="block text-sm font-semibold text-[var(--color-teal)]">
+                      {Number(r.basePrice).toLocaleString("fr-FR")} FCFA/nuit
+                    </span>
+                    <span className={`block text-xs ${leftOf(r) < 1 ? "font-semibold text-red-500" : "text-slate-500"}`}>
+                      {leftOf(r) < 1 ? "Complet" : `${leftOf(r)} disponible${leftOf(r) > 1 ? "s" : ""} sur ${r.unitCount}`}
+                    </span>
                   </span>
                 </label>
               ))}
@@ -209,7 +241,10 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
             {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
 
             <div className="mt-4">
-              <Button type="submit" loading={busy}>
+              {roomFull && (
+                <p className="mb-2 text-sm text-red-500">Ce type de chambre est complet sur ces dates. Choisissez d&apos;autres dates ou une autre chambre.</p>
+              )}
+              <Button type="submit" loading={busy} disabled={roomFull}>
                 {offer.trim() ? "Envoyer ma proposition" : "Demander cette réservation"}
               </Button>
             </div>

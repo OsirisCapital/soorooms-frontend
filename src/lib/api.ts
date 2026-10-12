@@ -135,6 +135,10 @@ export interface RoomSearchResult {
   maxGuests: number;
   bedCount: number;
   bedroomCount: number;
+  unitCount?: number;
+  /** Unités libres sur les dates cherchées (ou le total sans dates). */
+  unitsLeft?: number;
+  photos?: PropertyPhoto[];
   property: {
     id: string;
     title: string;
@@ -287,6 +291,11 @@ export interface PropertyRoom {
   maxGuests: number;
   bedCount: number;
   bedroomCount: number;
+  /** Nombre d'unités identiques de ce type (ex. 20 chambres standard). */
+  unitCount: number;
+  /** Unités encore libres (aujourd'hui, ou sur les dates demandées) — fourni par la fiche publique. */
+  unitsLeft?: number;
+  photos?: PropertyPhoto[];
 }
 
 export interface PropertyDetail {
@@ -309,8 +318,11 @@ export interface PropertyDetail {
   photos?: PropertyPhoto[];
 }
 
-export function getProperty(id: string) {
-  return request<PropertyDetail>(`/search/properties/${encodeURIComponent(id)}`);
+export function getProperty(id: string, dates?: { checkInDate: string; checkOutDate: string }) {
+  const query = dates
+    ? `?checkInDate=${encodeURIComponent(dates.checkInDate)}&checkOutDate=${encodeURIComponent(dates.checkOutDate)}`
+    : "";
+  return request<PropertyDetail>(`/search/properties/${encodeURIComponent(id)}${query}`);
 }
 
 // ---------------------------------------------------------------------
@@ -457,6 +469,7 @@ export interface RoomPayload {
   maxGuests: number;
   bedCount?: number;
   bedroomCount?: number;
+  unitCount?: number;
 }
 
 export function listMyProperties() {
@@ -572,6 +585,20 @@ export function addPropertyPhoto(propertyId: string, url: string) {
 export function removePropertyPhoto(propertyId: string, photoId: string) {
   return authRequest<null>(
     `/properties/${encodeURIComponent(propertyId)}/photos/${encodeURIComponent(photoId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function addRoomPhoto(propertyId: string, roomId: string, url: string) {
+  return authRequest<PropertyPhoto>(
+    `/properties/${encodeURIComponent(propertyId)}/rooms/${encodeURIComponent(roomId)}/photos`,
+    { method: "POST", body: JSON.stringify({ url }) },
+  );
+}
+
+export function removeRoomPhoto(propertyId: string, roomId: string, photoId: string) {
+  return authRequest<null>(
+    `/properties/${encodeURIComponent(propertyId)}/rooms/${encodeURIComponent(roomId)}/photos/${encodeURIComponent(photoId)}`,
     { method: "DELETE" },
   );
 }
