@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/TextField";
+import { PhoneField } from "@/components/ui/PhoneField";
 import { ApiError, forgotPassword, type ForgotPasswordResponse } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
@@ -69,15 +69,9 @@ export default function ForgotPasswordPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-              <TextField
-                type="tel"
-                placeholder="Téléphone (+237...)"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
+              <PhoneField onChange={(value) => setPhone(value)} required />
               <p className="-mt-2 text-xs text-slate-500">
-                Saisissez le numéro de votre compte (avec ou sans l&apos;indicatif +237). Sans adresse e-mail vérifiée sur
+                Saisissez le numéro de votre compte (choisissez d&apos;abord son pays). Sans adresse e-mail vérifiée sur
                 le compte, aucun lien ne peut être envoyé : contactez alors le support.
               </p>
 
