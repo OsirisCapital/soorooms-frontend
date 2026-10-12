@@ -126,6 +126,12 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
       <p className="mt-1 text-slate-600">
         {property.city} · {property.quarter} · {PROPERTY_TYPE_LABEL[property.propertyType] ?? property.propertyType}
       </p>
+      {(property.isVerifiedByAgent || property.identityVerified) && (
+        <p className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-[var(--color-teal)]">
+          {property.isVerifiedByAgent && <span className="rounded-full bg-[var(--color-teal-100)] px-3 py-1">✓ Logement vérifié par SòôRooms</span>}
+          {property.identityVerified && <span className="rounded-full bg-[var(--color-teal-100)] px-3 py-1">✓ Identité de l&apos;hôte vérifiée</span>}
+        </p>
+      )}
 
       <p className="mt-4 whitespace-pre-line text-[var(--color-ink)]">{property.description}</p>
 

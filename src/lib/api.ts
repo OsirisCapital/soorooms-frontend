@@ -116,6 +116,8 @@ export interface SearchRoomsParams {
   hasGeneratorOrSolar?: boolean;
   hasAc?: boolean;
   hasParking?: boolean;
+  /** « verified » : logements vérifiés sur place en tête ; défaut : moins cher d'abord. */
+  sort?: "price" | "verified";
   page?: number;
   limit?: number;
 }
@@ -146,6 +148,10 @@ export interface RoomSearchResult {
     city: string;
     quarter: string;
     photos?: PropertyPhoto[];
+    /** Hôte dont l'identité (KYC) est vérifiée. */
+    identityVerified?: boolean;
+    /** Logement vérifié sur place par SòôRooms. */
+    isVerifiedByAgent?: boolean;
   };
 }
 
@@ -316,6 +322,8 @@ export interface PropertyDetail {
   } | null;
   rooms: PropertyRoom[];
   photos?: PropertyPhoto[];
+  identityVerified?: boolean;
+  isVerifiedByAgent?: boolean;
 }
 
 export function getProperty(id: string, dates?: { checkInDate: string; checkOutDate: string }) {

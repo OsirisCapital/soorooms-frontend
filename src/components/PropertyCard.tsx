@@ -24,12 +24,14 @@ type PropertyCardProps = {
   subtitle: string;
   priceLabel: string;
   photoUrl?: string;
+  /** Étiquette de confiance affichée sur la photo (ex. « Identité vérifiée »). */
+  badge?: string;
   /** Classes de dimension et de disposition (ex. « h-56 w-44 shrink-0 »). */
   className?: string;
 };
 
 /** Carte d'un logement : photo (ou case colorée), titre, lieu, prix et étoile de favori. */
-export function PropertyCard({ propertyId, title, subtitle, priceLabel, photoUrl, className = "" }: PropertyCardProps) {
+export function PropertyCard({ propertyId, title, subtitle, priceLabel, photoUrl, badge, className = "" }: PropertyCardProps) {
   const [from, to] = colorsFor(propertyId);
 
   return (
@@ -47,6 +49,11 @@ export function PropertyCard({ propertyId, title, subtitle, priceLabel, photoUrl
           <p className="mt-1 text-sm font-semibold">{priceLabel}</p>
         </div>
       </Link>
+      {badge && (
+        <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[var(--color-teal)] shadow-sm">
+          ✓ {badge}
+        </span>
+      )}
       <FavoriteStar propertyId={propertyId} />
     </div>
   );

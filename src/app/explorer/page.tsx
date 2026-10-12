@@ -59,6 +59,7 @@ function Explorer() {
   const [guests, setGuests] = useState("");
   const [type, setType] = useState<PropertyType | undefined>(undefined);
   const [amenities, setAmenities] = useState<AmenityKey[]>([]);
+  const [verifiedFirst, setVerifiedFirst] = useState(false);
 
   // Les filtres ne s'appliquent qu'au clic sur « Rechercher » ; les puces, elles, agissent tout de suite.
   const [applied, setApplied] = useState<{ city: string; checkIn: string; checkOut: string; guests: string }>({
@@ -77,6 +78,7 @@ function Explorer() {
     checkOutDate: applied.checkIn && applied.checkOut ? applied.checkOut : undefined,
     maxGuests: applied.guests ? Number(applied.guests) : undefined,
     propertyType: type,
+    sort: verifiedFirst ? "verified" : undefined,
     ...Object.fromEntries(amenities.map((key) => [key, true])),
   };
 
@@ -151,6 +153,9 @@ function Explorer() {
         ))}
       </div>
       <div className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5">
+        <Chip active={verifiedFirst} onClick={() => setVerifiedFirst(!verifiedFirst)}>
+          ✓ Vérifiés d&apos;abord
+        </Chip>
         {AMENITY_CHIPS.map((chip) => (
           <Chip key={chip.key} active={amenities.includes(chip.key)} onClick={() => toggleAmenity(chip.key)}>
             {chip.label}
@@ -189,6 +194,7 @@ function Explorer() {
                   subtitle={`${room.property.city} · ${room.property.quarter}`}
                   priceLabel={formatNightPrice(room.basePrice)}
                   photoUrl={room.property.photos?.[0]?.url}
+                  badge={room.property.isVerifiedByAgent ? "Vérifié par SòôRooms" : room.property.identityVerified ? "Identité vérifiée" : undefined}
                   className="h-56"
                 />
               ))}
