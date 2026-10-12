@@ -165,6 +165,13 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
       {booking.status === "NEGOTIATING" && current && (
         <section className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-semibold text-[var(--color-teal)]">Négociation du prix</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Réponse attendue avant{" "}
+            <strong>
+              {new Date(new Date(current.createdAt).getTime() + 2 * 3_600_000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+            </strong>{" "}
+            (2 h après l&apos;offre). Sans réponse, la demande expire.
+          </p>
 
           {offerIsMine ? (
             <>
