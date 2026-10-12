@@ -120,6 +120,12 @@ function PublishCard({ property, reload }: CardProps) {
         >
           QR code et affiche à imprimer
         </Link>
+        <Link
+          href={`/hote/logements/${property.id}/verification`}
+          className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+        >
+          {property.isVerifiedByAgent ? "Vérifié par SòôRooms ✓ · voir le rapport" : "Faire vérifier mon logement (badge « Vérifié »)"}
+        </Link>
         </>
       ) : property.status === "SUSPENDED" ? (
         <p className="text-sm text-slate-600">Ce logement est suspendu et n&apos;est pas visible des voyageurs.</p>

@@ -538,6 +538,7 @@ export interface HostProperty {
   latitude: number;
   longitude: number;
   status: PropertyStatus;
+  isVerifiedByAgent?: boolean;
   amenities: PropertyAmenities | null;
   rooms: PropertyRoom[];
   photos?: PropertyPhoto[];

@@ -16,9 +16,11 @@ export type Permission =
   | "releases.manage"
   | "staff.manage"
   | "audit.view"
-  | "settings.manage";
+  | "settings.manage"
+  | "visits.manage"
+  | "visits.perform";
 
-export type StaffRole = "SUPER_ADMIN" | "KYC_REVIEWER" | "SUPPORT" | "FINANCE" | "CONTENT";
+export type StaffRole = "SUPER_ADMIN" | "KYC_REVIEWER" | "SUPPORT" | "FINANCE" | "CONTENT" | "FIELD_AGENT";
 
 export const STAFF_ROLE_LABEL: Record<StaffRole, string> = {
   SUPER_ADMIN: "Super administrateur",
@@ -26,6 +28,7 @@ export const STAFF_ROLE_LABEL: Record<StaffRole, string> = {
   SUPPORT: "Support",
   FINANCE: "Finance",
   CONTENT: "Contenu",
+  FIELD_AGENT: "Agent de terrain",
 };
 
 export interface AdminAccess {
@@ -157,6 +160,8 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "staff.manage": "Équipe et tâches",
   "audit.view": "Journal",
   "settings.manage": "Commissions et frais",
+  "visits.manage": "Visites de vérification (file et agents)",
+  "visits.perform": "Réaliser des visites de vérification",
 };
 
 export interface StaffMember {

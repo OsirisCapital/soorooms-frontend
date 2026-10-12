@@ -35,6 +35,7 @@ function FeesEditor({ view, onSaved }: { view: AdminFeesView; onSaved: (next: Ad
   const [launch, setLaunch] = useState(c?.launchHostCommissionPercent != null ? String(c.launchHostCommissionPercent) : "");
   const [launchEnd, setLaunchEnd] = useState(dayInput(c?.launchEndsAt ?? null));
   const [traveler, setTraveler] = useState(String(c?.travelerFeePercent ?? 3));
+  const [visitPrice, setVisitPrice] = useState(String(c?.verificationVisitPrice ?? 10000));
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,12 +44,14 @@ function FeesEditor({ view, onSaved }: { view: AdminFeesView; onSaved: (next: Ad
   const hostN = toNumber(host);
   const travelerN = toNumber(traveler);
   const launchN = toNumber(launch);
+  const visitPriceN = toNumber(visitPrice);
   const hasLaunch = Number.isFinite(launchN) || launchEnd !== "";
 
   async function save() {
     setError(null);
     setSaved(false);
     if (!Number.isFinite(hostN) || !Number.isFinite(travelerN)) return setError("Renseignez la commission hôte et les frais voyageur.");
+    if (!Number.isFinite(visitPriceN) || visitPriceN < 1000 || visitPriceN > 200000) return setError("Le prix d'une visite doit être compris entre 1 000 et 200 000 FCFA.");
     if (hasLaunch && (!Number.isFinite(launchN) || launchEnd === "")) return setError("L'offre de lancement demande un pourcentage ET une date de fin (ou aucun des deux).");
     const summary = `Commission hôte ${formatPercent(hostN)}${hasLaunch ? `, offre de lancement ${formatPercent(launchN)} jusqu'au ${launchEnd}` : ""}, frais voyageur ${formatPercent(travelerN)}.`;
     if (!window.confirm(`Appliquer ces réglages aux prochaines réservations ?\n\n${summary}\n\nLes hôtes seront prévenus si leur commission change.`)) return;
@@ -60,6 +63,7 @@ function FeesEditor({ view, onSaved }: { view: AdminFeesView; onSaved: (next: Ad
           launchHostCommissionPercent: hasLaunch ? launchN : null,
           launchEndsAt: hasLaunch ? endOfDay(launchEnd) : null,
           travelerFeePercent: travelerN,
+          verificationVisitPrice: Math.round(visitPriceN),
           note: note.trim() || undefined,
         }),
       );
@@ -107,6 +111,11 @@ function FeesEditor({ view, onSaved }: { view: AdminFeesView; onSaved: (next: Ad
         <div>
           <label className={label} htmlFor="fee-traveler">Frais de service voyageur (%)</label>
           <TextField id="fee-traveler" inputMode="decimal" value={traveler} onChange={(e) => setTraveler(e.target.value)} />
+        </div>
+        <div>
+          <label className={label} htmlFor="fee-visit">Prix d&apos;une visite de vérification (FCFA)</label>
+          <TextField id="fee-visit" inputMode="numeric" value={visitPrice} onChange={(e) => setVisitPrice(e.target.value)} />
+          <p className="mt-1 text-xs text-slate-500">Payé par l&apos;hôte pour obtenir le badge « Vérifié par SòôRooms ». Une demande déjà créée mais non payée prend le nouveau prix.</p>
         </div>
         <div>
           <label className={label} htmlFor="fee-note">Motif (facultatif)</label>

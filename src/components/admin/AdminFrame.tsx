@@ -19,6 +19,8 @@ const SECTIONS: Array<{ href: string; label: string; permission: Permission }> =
   { href: "/admin/litiges", label: "Litiges", permission: "disputes.view" },
   { href: "/admin/finances", label: "Finances", permission: "payments.view" },
   { href: "/admin/versements", label: "Versements", permission: "payouts.manage" },
+  { href: "/admin/visites", label: "Visites", permission: "visits.manage" },
+  { href: "/admin/mes-visites", label: "Mes visites", permission: "visits.perform" },
   { href: "/admin/frais", label: "Frais", permission: "settings.manage" },
   { href: "/admin/journal", label: "Journal", permission: "audit.view" },
 ];

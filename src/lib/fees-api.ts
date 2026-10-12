@@ -16,6 +16,7 @@ export interface FeeSettings {
   launchHostCommissionPercent: number | null;
   launchEndsAt: string | null;
   travelerFeePercent: number;
+  verificationVisitPrice: number | null;
   note: string | null;
   by: string | null;
   createdAt: string;
@@ -32,6 +33,7 @@ export interface FeesUpdate {
   launchHostCommissionPercent: number | null;
   launchEndsAt: string | null;
   travelerFeePercent: number;
+  verificationVisitPrice?: number;
   note?: string;
 }
 
