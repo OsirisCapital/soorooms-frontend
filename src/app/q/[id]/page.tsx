@@ -8,7 +8,7 @@ import { PropertyPhoto } from "@/components/PropertyPhoto";
 import { Button } from "@/components/ui/Button";
 import { getProperty, type PropertyDetail } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth-storage";
-import { formatNightPrice } from "@/lib/rooms";
+import { formatRoomPrice } from "@/lib/rooms";
 import { rememberNext } from "@/lib/post-login";
 import { useAsyncData } from "@/lib/use-async-data";
 
@@ -91,7 +91,7 @@ export default function ArrivalPage() {
                         {left < 1 ? "Complet" : `${left} disponible${left > 1 ? "s" : ""} sur ${r.unitCount}`}
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm font-semibold text-[var(--color-teal)]">{formatNightPrice(r.basePrice)}</span>
+                    <span className="shrink-0 text-sm font-semibold text-[var(--color-teal)]">{formatRoomPrice(r, property.propertyType)}</span>
                   </button>
                 </li>
               );

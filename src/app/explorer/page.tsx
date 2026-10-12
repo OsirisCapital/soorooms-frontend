@@ -7,7 +7,7 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { Button } from "@/components/ui/Button";
 import type { PropertyType, SearchRoomsParams } from "@/lib/api";
 import { PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
-import { dedupeByProperty, formatNightPrice } from "@/lib/rooms";
+import { dedupeByProperty, formatRoomPrice } from "@/lib/rooms";
 import { useExplorerSearch } from "@/lib/use-explorer-search";
 
 type AmenityKey = "hasWifi" | "hasAc" | "hasParking" | "hasGeneratorOrSolar";
@@ -192,7 +192,7 @@ function Explorer() {
                   propertyId={room.propertyId}
                   title={room.property.title}
                   subtitle={`${room.property.city} · ${room.property.quarter}`}
-                  priceLabel={formatNightPrice(room.basePrice)}
+                  priceLabel={formatRoomPrice(room, room.property.propertyType)}
                   photoUrl={room.property.photos?.[0]?.url}
                   badge={room.property.isVerifiedByAgent ? "Vérifié par SòôRooms" : room.property.identityVerified ? "Identité vérifiée" : undefined}
                   className="h-56"

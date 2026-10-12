@@ -6,8 +6,9 @@ import { AppShell } from "@/components/AppShell";
 import { FavoriteStar } from "@/components/FavoriteStar";
 import { PropertyPhoto } from "@/components/PropertyPhoto";
 import { Button } from "@/components/ui/Button";
-import { ApiError, createBooking, getProperty, type EventSlot, type PropertyDetail } from "@/lib/api";
-import { EVENT_SLOT_LABEL, EVENT_TYPES, formatFcfa, nextDay, nightsBetween, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
+import { ApiError, createBooking, getProperty, type EventSlot, type PropertyDetail, type StayTerm } from "@/lib/api";
+import { EVENT_SLOT_LABEL, EVENT_TYPES, formatFcfa, nextDay, nightsBetween, PROPERTY_TYPE_LABEL, STAY_TERM_LABEL } from "@/lib/booking-labels";
+import { termEnd } from "@/lib/rooms";
 import { useAsyncData } from "@/lib/use-async-data";
 
 // Sans photo, une case colorée tient la place de la galerie.
@@ -57,6 +58,8 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const [checkIn, setCheckIn] = useState(initial.get("checkIn") ?? "");
   const [checkOut, setCheckOut] = useState(initial.get("checkOut") ?? "");
   const isHall = property.propertyType === "EVENT_HALL";
+  const isResidence = property.propertyType === "STUDENT_RESIDENCE";
+  const [stayTerm, setStayTerm] = useState<StayTerm>("SEMESTER");
   const [eventType, setEventType] = useState(EVENT_TYPES[0]);
   const [eventSlot, setEventSlot] = useState<EventSlot>("EVENING");
   const [eventGuests, setEventGuests] = useState("");
@@ -70,8 +73,9 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
 
   const today = new Date().toISOString().slice(0, 10);
   // Une salle est réservée pour une date : le lendemain sert seulement de borne de fin.
-  const endDate = isHall ? nextDay(checkIn) : checkOut;
-  const nights = isHall ? (checkIn ? 1 : 0) : nightsBetween(checkIn, checkOut);
+  // Une résidence se loue au forfait : la fin est calculée (6 ou 12 mois), jamais saisie.
+  const endDate = isHall ? nextDay(checkIn) : isResidence ? termEnd(checkIn, stayTerm) : checkOut;
+  const nights = isHall || isResidence ? (checkIn ? 1 : 0) : nightsBetween(checkIn, checkOut);
 
   // Une fois les deux dates choisies, on redemande les unités libres sur ce séjour précis.
   const [leftByRoom, setLeftByRoom] = useState<Record<string, number>>({});
@@ -93,15 +97,30 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const leftOf = (r: PropertyDetail["rooms"][number]) => (nights >= 1 ? leftByRoom[r.id] : undefined) ?? r.unitsLeft ?? r.unitCount;
   const room = property.rooms.find((r) => r.id === roomId);
   const roomFull = room ? leftOf(room) < 1 : false;
+  const termPriceOf = (r: PropertyDetail["rooms"][number] | undefined, term: StayTerm) => {
+    const v = term === "SEMESTER" ? r?.semesterPrice : r?.yearPrice;
+    return v == null ? null : Number(v);
+  };
+  // Si la chambre choisie ne propose pas le forfait sélectionné, on bascule sur celui qu'elle propose.
+  const effectiveTerm: StayTerm =
+    termPriceOf(room, stayTerm) != null ? stayTerm : termPriceOf(room, "SEMESTER") != null ? "SEMESTER" : "YEAR";
   const hallOptions = property.hallOptions ?? [];
   const optionsTotal = hallOptions.filter((o) => optionIds.includes(o.id)).reduce((sum, o) => sum + Number(o.price), 0);
-  const listedTotal = room ? (isHall ? Number(room.basePrice) + optionsTotal : Number(room.basePrice) * nights) : 0;
+  const listedTotal = room
+    ? isHall
+      ? Number(room.basePrice) + optionsTotal
+      : isResidence
+        ? (termPriceOf(room, effectiveTerm) ?? Number(room.basePrice))
+        : Number(room.basePrice) * nights
+    : 0;
   const amenities = amenityLabels(property.amenities);
 
   async function handleBook(event: React.FormEvent) {
     event.preventDefault();
     if (!room) return;
-    if (nights < 1) return setError(isHall ? "Choisissez la date de l'événement." : "Choisissez une date d'arrivée et une date de départ.");
+    if (nights < 1) {
+      return setError(isHall ? "Choisissez la date de l'événement." : isResidence ? "Choisissez votre date d'entrée." : "Choisissez une date d'arrivée et une date de départ.");
+    }
     const guests = Number(eventGuests);
     if (isHall) {
       if (!Number.isInteger(guests) || guests < 1) return setError("Indiquez le nombre d'invités.");
@@ -123,7 +142,11 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
       const booking = await createBooking({
         roomId: room.id,
         checkInDate: checkIn,
-        ...(isHall ? { eventType, eventSlot, eventGuests: guests, optionIds } : { checkOutDate: checkOut }),
+        ...(isHall
+          ? { eventType, eventSlot, eventGuests: guests, optionIds }
+          : isResidence
+            ? { stayTerm: effectiveTerm }
+            : { checkOutDate: checkOut }),
         proposedPrice,
         ...(forSomeone ? { guestName: guestName.trim(), guestPhone: guestPhone.trim() || undefined } : {}),
       });
@@ -212,16 +235,29 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                       <span className="block text-xs text-slate-500">
                         {isHall
                           ? `${r.roomType} · jusqu'à ${r.maxGuests} invités`
-                          : `${r.roomType} · ${r.maxGuests} voyageur${r.maxGuests > 1 ? "s" : ""} · ${r.bedroomCount} chambre${r.bedroomCount > 1 ? "s" : ""} · ${r.bedCount} lit${r.bedCount > 1 ? "s" : ""}`}
+                          : isResidence
+                            ? r.roomType
+                            : `${r.roomType} · ${r.maxGuests} voyageur${r.maxGuests > 1 ? "s" : ""} · ${r.bedroomCount} chambre${r.bedroomCount > 1 ? "s" : ""} · ${r.bedCount} lit${r.bedCount > 1 ? "s" : ""}`}
                       </span>
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block text-sm font-semibold text-[var(--color-teal)]">
-                      {Number(r.basePrice).toLocaleString("fr-FR")} FCFA/{isHall ? "événement" : "nuit"}
-                    </span>
+                    {isResidence ? (
+                      <>
+                        {r.semesterPrice != null && (
+                          <span className="block text-sm font-semibold text-[var(--color-teal)]">{Number(r.semesterPrice).toLocaleString("fr-FR")} FCFA/semestre</span>
+                        )}
+                        {r.yearPrice != null && (
+                          <span className="block text-sm font-semibold text-[var(--color-teal)]">{Number(r.yearPrice).toLocaleString("fr-FR")} FCFA/an</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="block text-sm font-semibold text-[var(--color-teal)]">
+                        {Number(r.basePrice).toLocaleString("fr-FR")} FCFA/{isHall ? "événement" : "nuit"}
+                      </span>
+                    )}
                     <span className={`block text-xs ${leftOf(r) < 1 ? "font-semibold text-red-500" : "text-slate-500"}`}>
-                      {leftOf(r) < 1 ? (isHall ? "Déjà réservée" : "Complet") : isHall ? "Disponible" : `${leftOf(r)} disponible${leftOf(r) > 1 ? "s" : ""} sur ${r.unitCount}`}
+                      {leftOf(r) < 1 ? (isHall ? "Déjà réservée" : isResidence ? "Complet" : "Complet") : isHall ? "Disponible" : isResidence ? `${leftOf(r)} place${leftOf(r) > 1 ? "s" : ""} libre${leftOf(r) > 1 ? "s" : ""} sur ${r.unitCount}` : `${leftOf(r)} disponible${leftOf(r) > 1 ? "s" : ""} sur ${r.unitCount}`}
                     </span>
                   </span>
                 </label>
@@ -307,6 +343,51 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                   </fieldset>
                 )}
               </div>
+            ) : isResidence ? (
+              <div className="mt-4 grid grid-cols-1 gap-3">
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  Date d&apos;entrée
+                  <input
+                    type="date"
+                    min={today}
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    required
+                    className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]"
+                  />
+                </label>
+                <fieldset>
+                  <legend className="text-xs font-medium text-slate-500">Forfait</legend>
+                  <div className="mt-1 grid grid-cols-2 gap-2">
+                    {(["SEMESTER", "YEAR"] as StayTerm[]).map((term) => {
+                      const price = termPriceOf(room, term);
+                      return (
+                        <label
+                          key={term}
+                          className={`flex flex-col rounded-xl border px-3 py-2 text-sm ${
+                            price == null
+                              ? "cursor-not-allowed border-[var(--color-border)] opacity-40"
+                              : effectiveTerm === term
+                                ? "cursor-pointer border-[var(--color-terracotta)] bg-[var(--color-cream)]"
+                                : "cursor-pointer border-[var(--color-border)]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 font-medium text-[var(--color-ink)]">
+                            <input type="radio" name="term" disabled={price == null} checked={effectiveTerm === term} onChange={() => setStayTerm(term)} />
+                            {STAY_TERM_LABEL[term]}
+                          </span>
+                          <span className="text-xs text-slate-500">{price == null ? "Non proposé" : formatFcfa(price)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+                {checkIn && (
+                  <p className="text-xs text-slate-500">
+                    Du {checkIn.split("-").reverse().join("/")} au {termEnd(checkIn, effectiveTerm).split("-").reverse().join("/")}.
+                  </p>
+                )}
+              </div>
             ) : (
             <div className="mt-4 grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
@@ -339,7 +420,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
 
             {nights > 0 && (
               <p className="mt-4 text-sm text-slate-600">
-                {isHall ? "Au tarif affiché (salle + options)" : `${nights} nuit${nights > 1 ? "s" : ""} au tarif affiché`} :{" "}
+                {isHall ? "Au tarif affiché (salle + options)" : isResidence ? `Forfait ${effectiveTerm === "SEMESTER" ? "semestre" : "année"}` : `${nights} nuit${nights > 1 ? "s" : ""} au tarif affiché`} :{" "}
                 <strong className="text-[var(--color-ink)]">{formatFcfa(listedTotal)}</strong>
               </p>
             )}
@@ -370,7 +451,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
             )}
 
             <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">
-              {isHall ? "Proposer un autre prix pour l'événement (facultatif)" : "Proposer un autre prix pour le séjour (facultatif)"}
+              {isHall ? "Proposer un autre prix pour l'événement (facultatif)" : isResidence ? "Proposer un autre prix pour le forfait (facultatif)" : "Proposer un autre prix pour le séjour (facultatif)"}
               <input
                 type="number"
                 inputMode="numeric"
@@ -389,7 +470,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
 
             <div className="mt-4">
               {roomFull && (
-                <p className="mb-2 text-sm text-red-500">{isHall ? "Cette salle est déjà réservée à cette date. Choisissez une autre date." : "Ce type de chambre est complet sur ces dates. Choisissez d'autres dates ou une autre chambre."}</p>
+                <p className="mb-2 text-sm text-red-500">{isHall ? "Cette salle est déjà réservée à cette date. Choisissez une autre date." : isResidence ? "Plus de place libre sur cette période. Choisissez une autre date d'entrée ou une autre chambre." : "Ce type de chambre est complet sur ces dates. Choisissez d'autres dates ou une autre chambre."}</p>
               )}
               <Button type="submit" loading={busy} disabled={roomFull}>
                 {offer.trim() ? "Envoyer ma proposition" : "Demander cette réservation"}

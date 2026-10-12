@@ -101,7 +101,8 @@ export function googleAuthUrl() {
 // Recherche publique de logements — GET /search/rooms (aucun token requis)
 // ---------------------------------------------------------------------
 
-export type PropertyType = "HOTEL" | "FURNISHED_APARTMENT" | "STUDENT_ROOM" | "GUEST_HOUSE" | "EVENT_HALL";
+export type StayTerm = "SEMESTER" | "YEAR";
+export type PropertyType = "HOTEL" | "FURNISHED_APARTMENT" | "STUDENT_ROOM" | "GUEST_HOUSE" | "EVENT_HALL" | "STUDENT_RESIDENCE";
 
 export interface SearchRoomsParams {
   city?: string;
@@ -138,6 +139,9 @@ export interface RoomSearchResult {
   bedCount: number;
   bedroomCount: number;
   unitCount?: number;
+  /** Résidence étudiante : forfaits (null si non proposé). */
+  semesterPrice?: string | number | null;
+  yearPrice?: string | number | null;
   /** Unités libres sur les dates cherchées (ou le total sans dates). */
   unitsLeft?: number;
   photos?: PropertyPhoto[];
@@ -266,6 +270,7 @@ export function submitKyc(payload: { idCardUrl: string; proofOfAddressUrl?: stri
 export type BookingStatus =
   | "NEGOTIATING"
   | "PENDING_PAYMENT"
+  | "DEPOSIT_PAID"
   | "CONFIRMED_ESCROW"
   | "COMPLETED"
   | "DISPUTED"
@@ -299,6 +304,8 @@ export interface PropertyRoom {
   bedroomCount: number;
   /** Nombre d'unités identiques de ce type (ex. 20 chambres standard). */
   unitCount: number;
+  semesterPrice?: string | number | null;
+  yearPrice?: string | number | null;
   /** Unités encore libres (aujourd'hui, ou sur les dates demandées) — fourni par la fiche publique. */
   unitsLeft?: number;
   photos?: PropertyPhoto[];
@@ -372,10 +379,16 @@ export interface BookingDetail {
   guestName?: string | null;
   guestPhone?: string | null;
   /** Salle de fêtes : détails de l'événement (null pour un séjour). */
+  /** Résidence étudiante : forfait choisi (la date de fin est calculée par le serveur). */
+  stayTerm?: StayTerm | null;
   eventType?: string | null;
   eventSlot?: EventSlot | null;
   eventGuests?: number | null;
   eventOptions?: { id: string; name: string; price: number }[] | null;
+  /** Paiement en deux temps (salle de fêtes) : % d'acompte, échéance du solde, prochain paiement attendu. */
+  depositPercent?: number | null;
+  balanceDueAt?: string | null;
+  nextPayment?: { kind: "FULL" | "DEPOSIT" | "BALANCE"; amount: number } | null;
   currency?: string;
   createdAt: string;
   /** Du plus récent au plus ancien : offers[0] est l'offre en cours. */
@@ -394,6 +407,8 @@ export interface CreateBookingPayload {
   checkInDate: string; // YYYY-MM-DD
   /** Inutile pour une salle de fêtes (un événement = une date). */
   checkOutDate?: string;
+  /** Résidence étudiante uniquement : semestre (6 mois) ou année (12 mois). */
+  stayTerm?: StayTerm;
   /** Salle de fêtes uniquement. */
   eventType?: string;
   eventSlot?: EventSlot;
@@ -422,12 +437,16 @@ export interface BookingReceipt {
   checkInDate: string;
   checkOutDate: string;
   nights: number;
+  stayTerm?: StayTerm | null;
   stayPrice: number;
   travelerFee: number;
   travelerFeePercent: number | null;
   totalPaid: number;
   paymentMethod: string;
   refunded: boolean;
+  /** Paiement en deux temps : ce qu'il reste à payer (0 si tout est réglé) et son échéance. */
+  balanceDue: number;
+  balanceDueAt: string | null;
   /** Facture entreprise, null tant que le voyageur ne l'a pas demandée. */
   invoice: { number: string; company: string; address: string; taxId: string | null; issuedAt: string } | null;
 }
@@ -517,6 +536,8 @@ export interface PaymentInitiation {
   escrowId: string;
   paymentUrl: string;
   gatewayRef: string;
+  stage?: "FULL" | "DEPOSIT" | "BALANCE";
+  amount?: number;
 }
 
 export function initiatePayment(bookingId: string) {
@@ -598,6 +619,9 @@ export interface RoomPayload {
   bedCount?: number;
   bedroomCount?: number;
   unitCount?: number;
+  /** Résidence étudiante : forfaits (null = non proposé). */
+  semesterPrice?: number | null;
+  yearPrice?: number | null;
 }
 
 export function listMyProperties() {

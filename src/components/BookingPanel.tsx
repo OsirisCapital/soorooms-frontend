@@ -16,9 +16,10 @@ import {
   type BookingDetail,
   type OfferStatus,
 } from "@/lib/api";
-import { BOOKING_STATUS_LABEL, EVENT_SLOT_LABEL, formatDay, formatFcfa, nightsBetween } from "@/lib/booking-labels";
+import { BOOKING_STATUS_LABEL, EVENT_SLOT_LABEL, STAY_TERM_LABEL, formatDay, formatFcfa, nightsBetween } from "@/lib/booking-labels";
 import { formatPercent, getCurrentFees, travelerFeeFor } from "@/lib/fees-api";
 import { useAsyncData } from "@/lib/use-async-data";
+import { previewDeposit } from "@/lib/deposit";
 import { rememberPendingPayment, usePaymentReturn, type PaymentReturnState } from "@/lib/use-payment-return";
 
 export type Viewer = "TRAVELER" | "HOST";
@@ -92,13 +93,22 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
   // webhook : il peut arriver en retard, ou être perdu quand le serveur dort.
   const paymentReturn = usePaymentReturn({
     bookingId: booking.id,
-    active: isTraveler && booking.status === "PENDING_PAYMENT",
+    active: isTraveler && (booking.status === "PENDING_PAYMENT" || booking.status === "DEPOSIT_PAID"),
     onConfirmed: () => {
       getBooking(bookingId.current)
         .then(setBooking)
         .catch(() => {});
     },
   });
+  // Paiement en deux temps (salle de fêtes) : aperçu avant paiement, puis montants exacts donnés par le serveur.
+  const plan = booking.status === "PENDING_PAYMENT" && stayPrice != null ? previewDeposit(booking.checkInDate, booking.depositPercent, stayPrice + serviceFee) : null;
+  const nextPayment = booking.nextPayment ?? null;
+  const payLabel =
+    nextPayment?.kind === "BALANCE"
+      ? `Payer le solde ${formatFcfa(nextPayment.amount)}`
+      : nextPayment?.kind === "DEPOSIT" || plan
+        ? `Payer l'acompte ${formatFcfa(nextPayment?.kind === "DEPOSIT" ? nextPayment.amount : (plan?.deposit ?? 0))}`
+        : `Payer ${stayPrice != null ? formatFcfa(stayPrice + serviceFee) : ""}`;
   const verifying = paymentReturn.state.phase === "verifying";
   const returnMessage = paymentReturnMessage(paymentReturn.state);
 
@@ -147,7 +157,9 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
         <p className="text-sm text-slate-600">
           {booking.eventType
             ? `${formatDay(booking.checkInDate)} · ${EVENT_SLOT_LABEL[booking.eventSlot ?? ""] ?? ""}`
-            : `${formatDay(booking.checkInDate)} → ${formatDay(booking.checkOutDate)} · ${nights} nuit${nights > 1 ? "s" : ""}`}
+            : booking.stayTerm
+              ? `${formatDay(booking.checkInDate)} → ${formatDay(booking.checkOutDate)} · ${STAY_TERM_LABEL[booking.stayTerm] ?? booking.stayTerm}`
+              : `${formatDay(booking.checkInDate)} → ${formatDay(booking.checkOutDate)} · ${nights} nuit${nights > 1 ? "s" : ""}`}
         </p>
         {booking.eventType && (
           <div className="mt-1 text-sm text-slate-600">
@@ -283,15 +295,29 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
       )}
 
       {/* --- Paiement --- */}
-      {booking.status === "PENDING_PAYMENT" && (
+      {(booking.status === "PENDING_PAYMENT" || booking.status === "DEPOSIT_PAID") && (
         <section className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="font-display text-lg font-semibold text-[var(--color-teal)]">Paiement</h2>
           {isTraveler ? (
             <>
-              <p className="mt-2 text-sm text-slate-600">
-                L&apos;hôte a validé le prix. Votre paiement est conservé en séquestre et n&apos;est reversé à l&apos;hôte
-                qu&apos;après confirmation du séjour par vous deux.
-              </p>
+              {booking.status === "DEPOSIT_PAID" ? (
+                <p className="mt-2 text-sm text-slate-600">
+                  Votre acompte est payé : la date est bloquée. Réglez le solde
+                  {booking.balanceDueAt ? ` avant le ${formatDay(booking.balanceDueAt)}` : " avant l'événement"} ; sans quoi la réservation est annulée et
+                  l&apos;acompte reste à l&apos;hôte.
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-slate-600">
+                  L&apos;hôte a validé le prix. Votre paiement est conservé en séquestre et n&apos;est reversé à l&apos;hôte
+                  qu&apos;après confirmation du séjour par vous deux.
+                </p>
+              )}
+              {plan && booking.status === "PENDING_PAYMENT" && (
+                <p className="mt-2 rounded-xl bg-[var(--color-cream-soft)] px-3 py-2 text-sm text-slate-600">
+                  Paiement en deux temps : un acompte de <strong className="text-[var(--color-ink)]">{formatFcfa(plan.deposit)}</strong> ({booking.depositPercent} %) bloque la date,
+                  puis le solde de {formatFcfa(plan.balance)} est à régler avant le {formatDay(plan.dueAt.toISOString())}. L&apos;acompte n&apos;est pas remboursé si le solde n&apos;est pas payé.
+                </p>
+              )}
               {returnMessage && (
                 <p
                   role="status"
@@ -302,7 +328,7 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                   {returnMessage.text}
                 </p>
               )}
-              {stayPrice != null && serviceFee > 0 && fees && (
+              {booking.status === "PENDING_PAYMENT" && stayPrice != null && serviceFee > 0 && fees && (
                 <dl className="mt-3 flex flex-col gap-1 rounded-xl bg-[var(--color-cream-soft)] px-3 py-2 text-sm">
                   <div className="flex justify-between gap-3">
                     <dt className="text-slate-600">Séjour</dt>
@@ -331,7 +357,7 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                     })
                   }
                 >
-                  Payer {stayPrice != null ? formatFcfa(stayPrice + serviceFee) : ""}
+                  {payLabel}
                 </Button>
                 <Button
                   variant="outline"
@@ -349,8 +375,11 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
           ) : (
             <>
               <p className="mt-2 text-sm text-slate-600">
-                Le prix est validé. En attente du paiement du voyageur : les dates seront bloquées une fois le paiement
-                confirmé.
+                {booking.status === "DEPOSIT_PAID"
+                  ? `Acompte reçu : la date est bloquée. Le solde est attendu${booking.balanceDueAt ? ` avant le ${formatDay(booking.balanceDueAt)}` : ""} ; sans paiement, la réservation est annulée et l'acompte vous est versé.`
+                  : plan
+                    ? `Le prix est validé. Le voyageur règle d'abord un acompte de ${booking.depositPercent} % : les dates sont bloquées dès qu'il est payé.`
+                    : "Le prix est validé. En attente du paiement du voyageur : les dates seront bloquées une fois le paiement confirmé."}
               </p>
               <div className="mt-4">
                 <Button variant="outline" onClick={refresh} loading={busy}>

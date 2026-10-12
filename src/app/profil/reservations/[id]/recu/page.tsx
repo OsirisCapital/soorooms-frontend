@@ -6,7 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError, getReceipt, issueInvoice, type BookingReceipt } from "@/lib/api";
-import { formatDay, formatFcfa } from "@/lib/booking-labels";
+import { formatDay, formatFcfa, STAY_TERM_LABEL } from "@/lib/booking-labels";
 import { PAYMENT_METHOD_LABEL } from "@/lib/finance-api";
 import { useAsyncData } from "@/lib/use-async-data";
 
@@ -86,7 +86,7 @@ export default function ReceiptPage() {
               <dd className="text-right text-[var(--color-ink)]">
                 {formatDay(receipt.checkInDate)} → {formatDay(receipt.checkOutDate)}
                 <span className="block text-xs text-slate-500">
-                  {receipt.nights} nuit{receipt.nights > 1 ? "s" : ""}
+                  {receipt.stayTerm ? (STAY_TERM_LABEL[receipt.stayTerm] ?? receipt.stayTerm) : `${receipt.nights} nuit${receipt.nights > 1 ? "s" : ""}`}
                 </span>
               </dd>
               <dt className="text-slate-500">Paiement</dt>
@@ -105,9 +105,15 @@ export default function ReceiptPage() {
                 <span>{formatFcfa(receipt.travelerFee)}</span>
               </div>
               <div className="mt-3 flex justify-between border-t border-[var(--color-border)] pt-3 text-base font-semibold text-[var(--color-teal)]">
-                <span>Total payé</span>
+                <span>{receipt.balanceDue > 0 ? "Payé à ce jour" : "Total payé"}</span>
                 <span>{formatFcfa(receipt.totalPaid)}</span>
               </div>
+              {receipt.balanceDue > 0 && (
+                <div className="mt-2 flex justify-between text-sm text-slate-600">
+                  <span>Solde à régler{receipt.balanceDueAt ? ` avant le ${formatDay(receipt.balanceDueAt)}` : ""}</span>
+                  <span className="font-semibold text-[var(--color-ink)]">{formatFcfa(receipt.balanceDue)}</span>
+                </div>
+              )}
               {receipt.refunded && <p className="mt-3 text-xs font-semibold text-[var(--color-terracotta-dark)]">Cette réservation a été remboursée.</p>}
             </div>
 
@@ -120,7 +126,11 @@ export default function ReceiptPage() {
             <Button onClick={() => window.print()}>Imprimer / enregistrer en PDF</Button>
           </div>
 
-          {!invoice && (
+          {!invoice && receipt.balanceDue > 0 && (
+            <p className="no-print mt-6 rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">La facture entreprise sera disponible une fois le solde payé.</p>
+          )}
+
+          {!invoice && receipt.balanceDue === 0 && (
             <form onSubmit={submitInvoice} className="no-print mt-6 space-y-3 rounded-2xl bg-white p-5 shadow-sm">
               <h2 className="font-semibold text-[var(--color-ink)]">Demander une facture entreprise</h2>
               <p className="text-sm text-slate-500">

@@ -9,6 +9,7 @@ import { useAsyncData } from "@/lib/use-async-data";
 // déduit la liste des réservations qui ont un prix retenu.
 const PAYMENT_LABEL: Partial<Record<BookingStatus, string>> = {
   PENDING_PAYMENT: "À payer",
+  DEPOSIT_PAID: "Acompte payé · solde à régler",
   CONFIRMED_ESCROW: "Payé · en séquestre",
   COMPLETED: "Payé · séjour terminé",
   DISPUTED: "Payé · litige en cours",

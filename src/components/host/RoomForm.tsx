@@ -7,6 +7,7 @@ import { ApiError, type PropertyRoom, type RoomPayload } from "@/lib/api";
 import { ACCEPT_ATTRIBUTE } from "@/lib/upload";
 
 const ROOM_TYPES = ["Chambre", "Studio", "Appartement", "Maison entière"];
+const RESIDENCE_TYPES = ["Lit en chambre partagée", "Chambre entière"];
 
 type Props = {
   initial?: PropertyRoom;
@@ -17,14 +18,18 @@ type Props = {
   requirePhotos?: boolean;
   /** Salle de fêtes : tarif par événement et capacité, sans chambres ni lits. */
   hall?: boolean;
+  /** Résidence étudiante : forfaits semestre / année, et nombre de places (lits ou chambres). */
+  residence?: boolean;
   onCancel?: () => void;
 };
 
 /** Formulaire d'une chambre (ou d'un logement entier représenté par une seule chambre). */
-export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false, hall = false }: Props) {
+export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false, hall = false, residence = false }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [roomType, setRoomType] = useState(initial?.roomType ?? "Chambre");
   const [basePrice, setBasePrice] = useState(initial ? String(Number(initial.basePrice)) : "");
+  const [semesterPrice, setSemesterPrice] = useState(initial?.semesterPrice != null ? String(Number(initial.semesterPrice)) : "");
+  const [yearPrice, setYearPrice] = useState(initial?.yearPrice != null ? String(Number(initial.yearPrice)) : "");
   const [maxGuests, setMaxGuests] = useState(String(initial?.maxGuests ?? 2));
   const [bedroomCount, setBedroomCount] = useState(String(initial?.bedroomCount ?? 1));
   const [bedCount, setBedCount] = useState(String(initial?.bedCount ?? 1));
@@ -38,14 +43,22 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const price = Number(basePrice);
+    const semester = semesterPrice.trim() === "" ? null : Number(semesterPrice);
+    const year = yearPrice.trim() === "" ? null : Number(yearPrice);
+    // Résidence : le prix de référence est celui du forfait le plus court proposé.
+    const price = residence ? Number(semester ?? year) : Number(basePrice);
     const guests = Number(maxGuests);
-    const bedrooms = hall ? 1 : Number(bedroomCount);
-    const beds = hall ? 1 : Number(bedCount);
+    const bedrooms = hall || residence ? 1 : Number(bedroomCount);
+    const beds = hall || residence ? 1 : Number(bedCount);
     const units = hall ? 1 : Number(unitCount);
 
     if (name.trim().length < 2) return setError("Donnez un nom à la chambre (2 caractères minimum).");
-    if (basePrice.trim() === "" || !Number.isFinite(price) || price < 0) return setError(hall ? "Indiquez un tarif valide." : "Indiquez un prix par nuit valide.");
+    if (residence) {
+      if (semester == null && year == null) return setError("Indiquez le prix du semestre et/ou de l'année.");
+      for (const p of [semester, year]) {
+        if (p != null && (!Number.isFinite(p) || p < 1)) return setError("Les prix des forfaits doivent être supérieurs à 0.");
+      }
+    } else if (basePrice.trim() === "" || !Number.isFinite(price) || price < 0) return setError(hall ? "Indiquez un tarif valide." : "Indiquez un prix par nuit valide.");
     if (![guests, bedrooms, beds].every((n) => Number.isInteger(n) && n >= 1)) {
       return setError(hall ? "La capacité doit être un nombre entier d'au moins 1." : "Voyageurs, chambres et lits doivent être des nombres entiers d'au moins 1.");
     }
@@ -67,6 +80,7 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
         bedroomCount: bedrooms,
         bedCount: beds,
         unitCount: units,
+        ...(residence ? { semesterPrice: semester, yearPrice: year } : {}),
       }, photos);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Enregistrement impossible. Réessayez.");
@@ -91,15 +105,31 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <TextField placeholder={hall ? "Nom (ex. Grande salle, Salle VIP)" : "Nom (ex. Chambre 1, Villa entière)"} value={name} onChange={(e) => setName(e.target.value)} required />
+      <TextField placeholder={hall ? "Nom (ex. Grande salle, Salle VIP)" : residence ? "Nom (ex. Chambre 3 lits, Chambre individuelle)" : "Nom (ex. Chambre 1, Villa entière)"} value={name} onChange={(e) => setName(e.target.value)} required />
       <TextField placeholder="Type" value={roomType} onChange={(e) => setRoomType(e.target.value)} list="room-types" />
       <datalist id="room-types">
-        {ROOM_TYPES.map((type) => (
+        {(residence ? RESIDENCE_TYPES : ROOM_TYPES).map((type) => (
           <option key={type} value={type} />
         ))}
       </datalist>
-      {numberField(hall ? "Tarif par événement (FCFA)" : "Prix par nuit (FCFA)", basePrice, setBasePrice, 0)}
-      {hall ? (
+      {residence ? (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            {numberField("Prix du semestre (FCFA)", semesterPrice, setSemesterPrice, 0)}
+            {numberField("Prix de l'année (FCFA)", yearPrice, setYearPrice, 0)}
+          </div>
+          <p className="-mt-1 text-xs text-slate-500">
+            Un seul des deux suffit. Le semestre dure 6 mois, l&apos;année 12 mois, à partir de la date d&apos;entrée de l&apos;étudiant.
+          </p>
+          <div>
+            {numberField("Nombre de places de ce type (lits ou chambres)", unitCount, setUnitCount)}
+            <p className="mt-1 text-xs text-slate-500">Ex. : 12 lits dans des chambres partagées = une ligne avec 12. Chaque étudiant réserve une place.</p>
+          </div>
+        </>
+      ) : (
+        numberField(hall ? "Tarif par événement (FCFA)" : "Prix par nuit (FCFA)", basePrice, setBasePrice, 0)
+      )}
+      {residence ? null : hall ? (
         numberField("Capacité (nombre d'invités)", maxGuests, setMaxGuests)
       ) : (
         <>

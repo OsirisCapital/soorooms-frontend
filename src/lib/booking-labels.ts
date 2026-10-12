@@ -3,6 +3,7 @@ import type { BookingStatus } from "./api";
 export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
   NEGOTIATING: "Négociation en cours",
   PENDING_PAYMENT: "Paiement en attente",
+  DEPOSIT_PAID: "Acompte payé · solde à régler",
   CONFIRMED_ESCROW: "Confirmée",
   COMPLETED: "Terminée",
   DISPUTED: "Litige",
@@ -27,6 +28,12 @@ export const PROPERTY_TYPE_LABEL: Record<string, string> = {
   STUDENT_ROOM: "Chambre étudiante",
   GUEST_HOUSE: "Maison d'hôtes",
   EVENT_HALL: "Salle de fêtes",
+  STUDENT_RESIDENCE: "Résidence étudiante",
+};
+
+export const STAY_TERM_LABEL: Record<string, string> = {
+  SEMESTER: "Semestre (6 mois)",
+  YEAR: "Année (12 mois)",
 };
 
 export const EVENT_SLOT_LABEL: Record<string, string> = {

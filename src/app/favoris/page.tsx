@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { PropertyCard } from "@/components/PropertyCard";
 import { getFavorites } from "@/lib/api";
-import { formatNightPrice } from "@/lib/rooms";
+import { formatNightPrice, formatResidencePrice } from "@/lib/rooms";
 import { useAsyncData } from "@/lib/use-async-data";
 import { useFavoriteIds } from "@/lib/use-favorites";
 
@@ -43,7 +43,13 @@ export default function FavorisPage() {
                 propertyId={property.id}
                 title={property.title}
                 subtitle={`${property.city} · ${property.quarter}`}
-                priceLabel={cheapest != null ? formatNightPrice(cheapest) : "Prix à venir"}
+                priceLabel={
+                  cheapest == null
+                    ? "Prix à venir"
+                    : property.propertyType === "STUDENT_RESIDENCE"
+                      ? formatResidencePrice(property.rooms[0])
+                      : formatNightPrice(cheapest)
+                }
                 photoUrl={property.photos[0]?.url}
                 className="h-56"
               />

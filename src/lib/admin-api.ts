@@ -49,7 +49,7 @@ export interface AdminOverview {
   };
   bookings: {
     total: number;
-    byStatus: Record<"NEGOTIATING" | "PENDING_PAYMENT" | "CONFIRMED_ESCROW" | "COMPLETED" | "DISPUTED" | "CANCELLED", number>;
+    byStatus: Record<"NEGOTIATING" | "PENDING_PAYMENT" | "DEPOSIT_PAID" | "CONFIRMED_ESCROW" | "COMPLETED" | "DISPUTED" | "CANCELLED", number>;
     disputed: number;
   };
   /** Montants en FCFA. */

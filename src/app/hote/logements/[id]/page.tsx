@@ -242,7 +242,7 @@ function RoomsCard({ property, reload }: CardProps) {
   }
 
   return (
-    <Card title={property.propertyType === "EVENT_HALL" ? "Salle et tarif" : "Chambres et prix"}>
+    <Card title={property.propertyType === "EVENT_HALL" ? "Salle et tarif" : property.propertyType === "STUDENT_RESIDENCE" ? "Chambres et forfaits" : "Chambres et prix"}>
       {property.rooms.length === 0 && mode !== "adding" && (
         <p className="text-sm text-slate-600">
           Aucune chambre pour l&apos;instant. Pour une maison ou un appartement entier, créez une seule chambre qui le représente.
@@ -255,6 +255,7 @@ function RoomsCard({ property, reload }: CardProps) {
             <li key={room.id} className="rounded-2xl border border-[var(--color-border)] p-4">
               <RoomForm
                 hall={property.propertyType === "EVENT_HALL"}
+                residence={property.propertyType === "STUDENT_RESIDENCE"}
                 initial={room}
                 submitLabel="Enregistrer"
                 onCancel={() => setMode("idle")}
@@ -272,11 +273,24 @@ function RoomsCard({ property, reload }: CardProps) {
                 <p className="text-xs text-slate-500">
                   {property.propertyType === "EVENT_HALL"
                     ? `${room.roomType} · jusqu'à ${room.maxGuests} invités`
-                    : `${room.roomType} · ${room.maxGuests} voyageur${room.maxGuests > 1 ? "s" : ""} · ${room.bedroomCount} chambre${room.bedroomCount > 1 ? "s" : ""} · ${room.bedCount} lit${room.bedCount > 1 ? "s" : ""}`}
+                    : property.propertyType === "STUDENT_RESIDENCE"
+                      ? room.roomType
+                      : `${room.roomType} · ${room.maxGuests} voyageur${room.maxGuests > 1 ? "s" : ""} · ${room.bedroomCount} chambre${room.bedroomCount > 1 ? "s" : ""} · ${room.bedCount} lit${room.bedCount > 1 ? "s" : ""}`}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-[var(--color-teal)]">
-                  {Number(room.basePrice).toLocaleString("fr-FR")} FCFA/{property.propertyType === "EVENT_HALL" ? "événement" : "nuit"}
-                  {room.unitCount > 1 && <span className="ml-2 font-normal text-slate-500">· {room.unitCount} unités</span>}
+                  {property.propertyType === "STUDENT_RESIDENCE" ? (
+                    [
+                      room.semesterPrice != null ? `${Number(room.semesterPrice).toLocaleString("fr-FR")} FCFA/semestre` : null,
+                      room.yearPrice != null ? `${Number(room.yearPrice).toLocaleString("fr-FR")} FCFA/an` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  ) : (
+                    <>
+                      {Number(room.basePrice).toLocaleString("fr-FR")} FCFA/{property.propertyType === "EVENT_HALL" ? "événement" : "nuit"}
+                    </>
+                  )}
+                  {room.unitCount > 1 && <span className="ml-2 font-normal text-slate-500">· {room.unitCount} {property.propertyType === "STUDENT_RESIDENCE" ? "places" : "unités"}</span>}
                 </p>
                 <RoomPhotos propertyId={property.id} room={room} reload={reload} />
               </div>
@@ -299,6 +313,7 @@ function RoomsCard({ property, reload }: CardProps) {
         <div className="mt-4 rounded-2xl border border-[var(--color-border)] p-4">
           <RoomForm
             hall={property.propertyType === "EVENT_HALL"}
+            residence={property.propertyType === "STUDENT_RESIDENCE"}
             submitLabel={property.propertyType === "EVENT_HALL" ? "Ajouter la salle" : "Ajouter la chambre"}
             requirePhotos
             onCancel={() => setMode("idle")}

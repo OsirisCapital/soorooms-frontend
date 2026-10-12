@@ -16,6 +16,7 @@ const TERRACOTTA = "#c1622e";
 const BOOKING_STATUS_LABEL: Record<string, string> = {
   NEGOTIATING: "En négociation",
   PENDING_PAYMENT: "En attente de paiement",
+  DEPOSIT_PAID: "Acompte payé (solde à régler)",
   CONFIRMED_ESCROW: "Payées (fonds sécurisés)",
   COMPLETED: "Terminées",
   DISPUTED: "En litige",
