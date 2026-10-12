@@ -7,6 +7,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { Icon } from "@/components/Icon";
 import { getAccessToken } from "@/lib/auth-storage";
+import { rememberNext } from "@/lib/post-login";
 
 type AppShellProps = {
   title?: string;
@@ -20,7 +21,11 @@ export function AppShell({ title, backHref, children }: AppShellProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!getAccessToken()) router.replace("/login");
+    if (!getAccessToken()) {
+      // Seules les fiches de logement sont mémorisées (lien partagé, QR code) ; une déconnexion ne doit pas rediriger.
+      if (window.location.pathname.startsWith("/logements/")) rememberNext(window.location.pathname + window.location.search);
+      router.replace("/login");
+    }
   }, [router]);
 
   return (

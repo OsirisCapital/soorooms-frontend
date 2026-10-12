@@ -107,12 +107,20 @@ function PublishCard({ property, reload }: CardProps) {
   return (
     <Card title={`Statut : ${PROPERTY_STATUS_LABEL[property.status]}`}>
       {property.status === "ACTIVE" ? (
+        <>
         <p className="text-sm text-slate-600">
           Ce logement est visible des voyageurs.{" "}
           <Link href={`/logements/${property.id}`} className="font-semibold text-[var(--color-terracotta)]">
             Voir la page publique
           </Link>
         </p>
+        <Link
+          href={`/hote/logements/${property.id}/affiche`}
+          className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+        >
+          QR code et affiche à imprimer
+        </Link>
+        </>
       ) : property.status === "SUSPENDED" ? (
         <p className="text-sm text-slate-600">Ce logement est suspendu et n&apos;est pas visible des voyageurs.</p>
       ) : (

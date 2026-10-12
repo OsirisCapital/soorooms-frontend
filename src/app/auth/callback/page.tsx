@@ -1,5 +1,6 @@
 "use client";
 
+import { takeNext } from "@/lib/post-login";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -23,7 +24,7 @@ export default function GoogleCallbackPage() {
 
     if (accessToken && refreshToken) {
       saveTokens({ accessToken, refreshToken });
-      router.replace("/home");
+      router.replace(takeNext());
     } else {
       router.replace("/login?error=google");
     }

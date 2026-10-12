@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { FavoriteStar } from "@/components/FavoriteStar";
 import { PropertyPhoto } from "@/components/PropertyPhoto";
@@ -38,7 +38,9 @@ export default function PropertyPage() {
       ) : error || !property ? (
         <p className="rounded-2xl bg-white p-6 text-center text-slate-600 shadow-sm">{error ?? "Logement introuvable."}</p>
       ) : (
-        <PropertyContent property={property} />
+        <Suspense fallback={null}>
+          <PropertyContent property={property} />
+        </Suspense>
       )}
     </AppShell>
   );
@@ -46,9 +48,14 @@ export default function PropertyPage() {
 
 function PropertyContent({ property }: { property: PropertyDetail }) {
   const router = useRouter();
-  const [roomId, setRoomId] = useState(property.rooms[0]?.id ?? "");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  // Un lien (QR code, page d'arrivée) peut pré-remplir la chambre et les dates.
+  const initial = useSearchParams();
+  const wantedRoom = initial.get("room");
+  const [roomId, setRoomId] = useState(
+    property.rooms.find((r) => r.id === wantedRoom)?.id ?? property.rooms[0]?.id ?? "",
+  );
+  const [checkIn, setCheckIn] = useState(initial.get("checkIn") ?? "");
+  const [checkOut, setCheckOut] = useState(initial.get("checkOut") ?? "");
   const [offer, setOffer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

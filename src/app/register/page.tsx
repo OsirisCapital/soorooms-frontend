@@ -1,5 +1,6 @@
 "use client";
 
+import { takeNext } from "@/lib/post-login";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,7 @@ export default function RegisterPage() {
     try {
       const tokens = await registerUser({ fullName, email: email.trim(), phone, password });
       saveTokens(tokens);
-      router.push("/home");
+      router.push(takeNext());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Inscription impossible. Réessayez.");
     } finally {

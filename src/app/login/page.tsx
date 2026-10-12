@@ -1,5 +1,6 @@
 "use client";
 
+import { takeNext } from "@/lib/post-login";
 import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,7 +26,7 @@ export default function LoginPage() {
     try {
       const tokens = await loginUser({ phone, password });
       saveTokens(tokens);
-      router.push("/home");
+      router.push(takeNext());
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Connexion impossible. Réessayez.");
     } finally {
