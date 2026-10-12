@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AdminFrame } from "@/components/admin/AdminFrame";
 import { BarList, DailyChart, StatTile } from "@/components/admin/charts";
 import { getAdminOverview, getAdminTimeseries } from "@/lib/admin-api";
+import { getAdminFinanceReport } from "@/lib/finance-api";
 import { formatFcfa } from "@/lib/booking-labels";
 import { getSupportSummary } from "@/lib/support-api";
 import { useAsyncData } from "@/lib/use-async-data";
@@ -36,7 +37,23 @@ function SupportTile() {
   );
 }
 
-function Dashboard({ canSupport }: { canSupport: boolean }) {
+/** Résumé des finances (30 jours) : seulement pour l'équipe qui y a accès (sinon le serveur refuserait l'appel). */
+function FinanceTile() {
+  const { data } = useAsyncData("admin-finance-summary", () => getAdminFinanceReport(30));
+  if (!data) return null;
+  return (
+    <StatTile
+      hero
+      label="Finances · 30 derniers jours"
+      value={formatFcfa(data.period.revenue)}
+      href="/admin/finances"
+      tone={data.payouts.toSend.count + data.payouts.failed.count > 0 ? "alert" : "default"}
+      hint={`revenus de la plateforme · ${formatFcfa(data.now.held)} en séquestre · ${data.payouts.toSend.count} versement${data.payouts.toSend.count > 1 ? "s" : ""} à envoyer`}
+    />
+  );
+}
+
+function Dashboard({ canSupport, canFinance }: { canSupport: boolean; canFinance: boolean }) {
   const [range, setRange] = useState<(typeof RANGES)[number]>(30);
   const overview = useAsyncData("admin-overview", getAdminOverview);
   const series = useAsyncData(`admin-series-${range}`, () => getAdminTimeseries(range));
@@ -52,6 +69,7 @@ function Dashboard({ canSupport }: { canSupport: boolean }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-3">
+        {canFinance && <FinanceTile />}
         <StatTile hero label="Volume réservé" value={formatFcfa(o.money.volumeBooked)} hint={`${formatFcfa(o.money.heldInEscrow)} sécurisés en attente · commissions ${formatFcfa(o.money.platformFeesEarned)}`} />
         <StatTile label="Utilisateurs" value={o.users.total.toLocaleString("fr-FR")} hint={`+${o.users.newLast7Days} sur 7 jours. ${deltaText}`} />
         <StatTile label="Hôtes" value={o.users.hosts.toLocaleString("fr-FR")} hint={`${o.users.travelers.toLocaleString("fr-FR")} voyageurs`} />
@@ -99,5 +117,5 @@ function Dashboard({ canSupport }: { canSupport: boolean }) {
 }
 
 export default function AdminDashboardPage() {
-  return <AdminFrame permission="dashboard.view">{(access) => <Dashboard canSupport={access.permissions.includes("support.manage")} />}</AdminFrame>;
+  return <AdminFrame permission="dashboard.view">{(access) => <Dashboard canSupport={access.permissions.includes("support.manage")} canFinance={access.permissions.includes("payments.view")} />}</AdminFrame>;
 }

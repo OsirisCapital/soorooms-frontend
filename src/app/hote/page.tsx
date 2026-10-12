@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import type { KycStatus } from "@/lib/api";
 import { BOOKING_STATUS_LABEL, formatDay, formatFcfa } from "@/lib/booking-labels";
+import { getHostFinanceReport } from "@/lib/finance-api";
 import { loadHostOverview, needsHostAction } from "@/lib/host-data";
 import { useAsyncData } from "@/lib/use-async-data";
 import { firstNameOf, useMe } from "@/lib/use-me";
@@ -24,6 +25,22 @@ function Stat({ value, label, highlight = false }: { value: number; label: strin
       <p className={`text-2xl font-bold ${highlight && value > 0 ? "" : "text-[var(--color-teal)]"}`}>{value}</p>
       <p className={`mt-1 text-xs ${highlight && value > 0 ? "text-white/90" : "text-slate-500"}`}>{label}</p>
     </div>
+  );
+}
+
+/** Résumé des revenus (30 jours) avec lien vers le rapport complet. Discret si le calcul échoue. */
+function RevenueCard() {
+  const { data } = useAsyncData("host-finance-30", () => getHostFinanceReport(30));
+  if (!data) return null;
+  return (
+    <Link href="/hote/finances" className="mt-6 block rounded-2xl bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mes revenus · 30 jours</p>
+      <p className="mt-1 text-2xl font-bold text-[var(--color-teal)]">{formatFcfa(data.period.hostNetReleased)}</p>
+      <p className="mt-1 text-xs text-slate-500">
+        reçus · {formatFcfa(data.now.heldNet)} en séquestre · {formatFcfa(data.payouts.toSend.amount + data.payouts.inFlight.amount)} en cours de versement
+      </p>
+      <span className="mt-2 inline-block text-sm font-semibold text-[var(--color-terracotta)]">Voir le rapport financier</span>
+    </Link>
   );
 }
 
@@ -74,9 +91,11 @@ export default function HostDashboardPage() {
             <Stat value={todo.length} label="À traiter" highlight />
           </div>
 
+          <RevenueCard />
+
           <Link
             href="/hote/logements/nouveau"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-terracotta)] px-5 py-3.5 font-semibold text-white hover:bg-[var(--color-terracotta-dark)]"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-terracotta)] px-5 py-3.5 font-semibold text-white hover:bg-[var(--color-terracotta-dark)]"
           >
             <Icon name="plus" size={20} />
             Ajouter un logement
