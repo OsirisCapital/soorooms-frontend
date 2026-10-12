@@ -381,6 +381,8 @@ export interface BookingDetail {
   /** Salle de fêtes : détails de l'événement (null pour un séjour). */
   /** Résidence étudiante : forfait choisi (la date de fin est calculée par le serveur). */
   stayTerm?: StayTerm | null;
+  /** Réservation de groupe : nombre de chambres (1 par défaut). */
+  units?: number;
   eventType?: string | null;
   eventSlot?: EventSlot | null;
   eventGuests?: number | null;
@@ -409,6 +411,8 @@ export interface CreateBookingPayload {
   checkOutDate?: string;
   /** Résidence étudiante uniquement : semestre (6 mois) ou année (12 mois). */
   stayTerm?: StayTerm;
+  /** Réservation de groupe : nombre de chambres identiques (défaut 1). */
+  units?: number;
   /** Salle de fêtes uniquement. */
   eventType?: string;
   eventSlot?: EventSlot;
@@ -438,6 +442,7 @@ export interface BookingReceipt {
   checkOutDate: string;
   nights: number;
   stayTerm?: StayTerm | null;
+  units?: number;
   stayPrice: number;
   travelerFee: number;
   travelerFeePercent: number | null;

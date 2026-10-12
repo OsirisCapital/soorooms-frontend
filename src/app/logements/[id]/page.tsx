@@ -64,6 +64,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const [eventSlot, setEventSlot] = useState<EventSlot>("EVENING");
   const [eventGuests, setEventGuests] = useState("");
   const [optionIds, setOptionIds] = useState<string[]>([]);
+  const [units, setUnits] = useState(1);
   const [offer, setOffer] = useState("");
   const [forSomeone, setForSomeone] = useState(false);
   const [guestName, setGuestName] = useState("");
@@ -97,6 +98,9 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const leftOf = (r: PropertyDetail["rooms"][number]) => (nights >= 1 ? leftByRoom[r.id] : undefined) ?? r.unitsLeft ?? r.unitCount;
   const room = property.rooms.find((r) => r.id === roomId);
   const roomFull = room ? leftOf(room) < 1 : false;
+  // Réservation de groupe : on ne peut pas demander plus de chambres qu'il n'en reste.
+  const maxUnits = !isHall && room ? Math.max(1, leftOf(room)) : 1;
+  const groupUnits = Math.min(units, maxUnits);
   const termPriceOf = (r: PropertyDetail["rooms"][number] | undefined, term: StayTerm) => {
     const v = term === "SEMESTER" ? r?.semesterPrice : r?.yearPrice;
     return v == null ? null : Number(v);
@@ -110,8 +114,8 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
     ? isHall
       ? Number(room.basePrice) + optionsTotal
       : isResidence
-        ? (termPriceOf(room, effectiveTerm) ?? Number(room.basePrice))
-        : Number(room.basePrice) * nights
+        ? (termPriceOf(room, effectiveTerm) ?? Number(room.basePrice)) * groupUnits
+        : Number(room.basePrice) * nights * groupUnits
     : 0;
   const amenities = amenityLabels(property.amenities);
 
@@ -147,6 +151,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
           : isResidence
             ? { stayTerm: effectiveTerm }
             : { checkOutDate: checkOut }),
+        ...(groupUnits > 1 ? { units: groupUnits } : {}),
         proposedPrice,
         ...(forSomeone ? { guestName: guestName.trim(), guestPhone: guestPhone.trim() || undefined } : {}),
       });
@@ -418,9 +423,25 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
             </div>
             )}
 
+            {!isHall && room && room.unitCount > 1 && (
+              <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">
+                Nombre de {isResidence ? "places" : "chambres"} (réservation de groupe)
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={maxUnits}
+                  value={groupUnits}
+                  onChange={(e) => setUnits(Math.max(1, Math.floor(Number(e.target.value)) || 1))}
+                  className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]"
+                />
+                {maxUnits > 1 && <span className="font-normal">Jusqu&apos;à {maxUnits} sur ces dates, réglées en un seul paiement.</span>}
+              </label>
+            )}
+
             {nights > 0 && (
               <p className="mt-4 text-sm text-slate-600">
-                {isHall ? "Au tarif affiché (salle + options)" : isResidence ? `Forfait ${effectiveTerm === "SEMESTER" ? "semestre" : "année"}` : `${nights} nuit${nights > 1 ? "s" : ""} au tarif affiché`} :{" "}
+                {isHall ? "Au tarif affiché (salle + options)" : isResidence ? `Forfait ${effectiveTerm === "SEMESTER" ? "semestre" : "année"}` : `${nights} nuit${nights > 1 ? "s" : ""}${groupUnits > 1 ? ` × ${groupUnits} chambres` : ""} au tarif affiché`} :{" "}
                 <strong className="text-[var(--color-ink)]">{formatFcfa(listedTotal)}</strong>
               </p>
             )}

@@ -145,7 +145,7 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
         <div className="min-w-0">
           <h1 className="font-display text-2xl font-bold text-[var(--color-teal)]">{booking.room.property.title}</h1>
           <p className="mt-1 text-slate-600">
-            {booking.room.name} · {booking.room.property.city}
+            {booking.room.name}{booking.units && booking.units > 1 ? ` × ${booking.units}` : ""} · {booking.room.property.city}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-[var(--color-teal-100)] px-3 py-1 text-xs font-semibold text-[var(--color-teal)]">

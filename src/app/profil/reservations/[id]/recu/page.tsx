@@ -81,7 +81,7 @@ export default function ReceiptPage() {
                 </span>
               </dd>
               <dt className="text-slate-500">Chambre</dt>
-              <dd className="text-right text-[var(--color-ink)]">{receipt.roomName}</dd>
+              <dd className="text-right text-[var(--color-ink)]">{receipt.roomName}{receipt.units && receipt.units > 1 ? ` × ${receipt.units}` : ""}</dd>
               <dt className="text-slate-500">Séjour</dt>
               <dd className="text-right text-[var(--color-ink)]">
                 {formatDay(receipt.checkInDate)} → {formatDay(receipt.checkOutDate)}
