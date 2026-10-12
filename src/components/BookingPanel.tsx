@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { PayLinkCard } from "@/components/PayLinkCard";
 import { Button } from "@/components/ui/Button";
 import {
   acceptOffer,
@@ -371,6 +372,7 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                   J&apos;ai payé — vérifier
                 </Button>
               </div>
+              <PayLinkCard bookingId={booking.id} initiallyActive={Boolean(booking.payLinkActive)} propertyTitle={booking.room.property.title} />
             </>
           ) : (
             <>

@@ -383,6 +383,8 @@ export interface BookingDetail {
   stayTerm?: StayTerm | null;
   /** Réservation de groupe : nombre de chambres (1 par défaut). */
   units?: number;
+  /** Voyageur seulement : un lien de paiement pour un proche est actif. */
+  payLinkActive?: boolean;
   eventType?: string | null;
   eventSlot?: EventSlot | null;
   eventGuests?: number | null;
@@ -550,6 +552,57 @@ export function initiatePayment(bookingId: string) {
     method: "POST",
   });
 }
+
+// ---------------------------------------------------------------------
+// Points de fidélité
+// ---------------------------------------------------------------------
+
+export interface LoyaltySummary {
+  balance: number;
+  entries: { id: string; points: number; reason: string; label: string | null; bookingId: string | null; createdAt: string }[];
+  rules: { reason: string; title: string; detail: string }[];
+  upcomingUses: string[];
+}
+
+export const getMyLoyalty = () => authRequest<LoyaltySummary>("/loyalty/me");
+
+// ---------------------------------------------------------------------
+// Lien de paiement pour un proche (diaspora)
+// ---------------------------------------------------------------------
+
+export interface PayLinkSummary {
+  propertyTitle: string;
+  city: string;
+  roomName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  travelerFirstName: string;
+  status: BookingStatus;
+  payable: boolean;
+  stage: "FULL" | "DEPOSIT" | "BALANCE" | null;
+  amount: number | null;
+  currency: string;
+}
+
+export const createPayLink = (bookingId: string) =>
+  authRequest<{ token: string }>(`/bookings/${encodeURIComponent(bookingId)}/pay-link`, { method: "POST" });
+
+export const revokePayLink = (bookingId: string) =>
+  authRequest<{ revoked: boolean }>(`/bookings/${encodeURIComponent(bookingId)}/pay-link`, { method: "DELETE" });
+
+export const getPayLink = (token: string) => request<PayLinkSummary>(`/pay-links/${encodeURIComponent(token)}`);
+
+export const initiatePayLink = (token: string, payload: { payerName: string; payerEmail: string; payerPhone?: string }) =>
+  request<{ paymentUrl: string; stage: "FULL" | "DEPOSIT" | "BALANCE"; amount: number }>(
+    `/pay-links/${encodeURIComponent(token)}/initiate`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+
+export const verifyPayLink = (token: string, reference: string) =>
+  request<PaymentVerification>(`/pay-links/${encodeURIComponent(token)}/verify`, {
+    method: "POST",
+    body: JSON.stringify({ reference }),
+  });
 
 export interface PaymentVerification {
   confirmed: boolean;
