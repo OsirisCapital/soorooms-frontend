@@ -1,21 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError, type PropertyRoom, type RoomPayload } from "@/lib/api";
+import { ACCEPT_ATTRIBUTE } from "@/lib/upload";
 
 const ROOM_TYPES = ["Chambre", "Studio", "Appartement", "Maison entière"];
 
 type Props = {
   initial?: PropertyRoom;
   submitLabel: string;
-  onSubmit: (payload: RoomPayload) => Promise<void>;
+  /** Photos choisies à la création (le parent les envoie une fois la chambre créée). */
+  onSubmit: (payload: RoomPayload, photos: File[]) => Promise<void>;
+  /** Création : au moins une photo est demandée dès le départ. */
+  requirePhotos?: boolean;
   onCancel?: () => void;
 };
 
 /** Formulaire d'une chambre (ou d'un logement entier représenté par une seule chambre). */
-export function RoomForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
+export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [roomType, setRoomType] = useState(initial?.roomType ?? "Chambre");
   const [basePrice, setBasePrice] = useState(initial ? String(Number(initial.basePrice)) : "");
@@ -23,6 +27,10 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
   const [bedroomCount, setBedroomCount] = useState(String(initial?.bedroomCount ?? 1));
   const [bedCount, setBedCount] = useState(String(initial?.bedCount ?? 1));
   const [unitCount, setUnitCount] = useState(String(initial?.unitCount ?? 1));
+  const [photos, setPhotos] = useState<File[]>([]);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const previews = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
+  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,6 +52,8 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
       return setError("Le nombre d'unités doit être un entier entre 1 et 500.");
     }
 
+    if (requirePhotos && photos.length === 0) return setError("Ajoutez au moins une photo de cette chambre.");
+
     setError(null);
     setBusy(true);
     try {
@@ -55,7 +65,7 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         bedroomCount: bedrooms,
         bedCount: beds,
         unitCount: units,
-      });
+      }, photos);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Enregistrement impossible. Réessayez.");
     } finally {
@@ -98,6 +108,47 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel }: Props) {
         {numberField("Chambres", bedroomCount, setBedroomCount)}
         {numberField("Lits", bedCount, setBedCount)}
       </div>
+      {requirePhotos && (
+        <div>
+          <input
+            ref={photoInput}
+            type="file"
+            accept={ACCEPT_ATTRIBUTE.property_photo}
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const picked = Array.from(e.target.files ?? []);
+              e.target.value = "";
+              setPhotos((prev) => [...prev, ...picked]);
+            }}
+          />
+          {previews.length > 0 && (
+            <ul className="mb-2 grid grid-cols-4 gap-2">
+              {previews.map((src, i) => (
+                <li key={src} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="h-16 w-full rounded-lg object-cover" />
+                  <button
+                    type="button"
+                    aria-label="Retirer la photo"
+                    onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
+                    className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-[10px] text-white"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={() => photoInput.current?.click()}
+            className="w-full rounded-2xl border border-dashed border-[var(--color-teal-600)] px-4 py-3 text-sm font-semibold text-[var(--color-teal)]"
+          >
+            {photos.length === 0 ? "Ajouter des photos de cette chambre (obligatoire)" : "Ajouter d'autres photos"}
+          </button>
+        </div>
+      )}
       {error && <p className="text-sm text-red-500">{error}</p>}
       <Button type="submit" loading={busy}>
         {submitLabel}

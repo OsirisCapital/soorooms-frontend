@@ -233,11 +233,24 @@ function RoomsCard({ property, reload }: CardProps) {
         <div className="mt-4 rounded-2xl border border-[var(--color-border)] p-4">
           <RoomForm
             submitLabel="Ajouter la chambre"
+            requirePhotos
             onCancel={() => setMode("idle")}
-            onSubmit={async (payload) => {
-              await createRoom(property.id, payload);
+            onSubmit={async (payload, files) => {
+              const created = await createRoom(property.id, payload);
+              // La chambre existe : les photos partent une à une. En cas d'échec on garde la chambre
+              // et on l'indique, l'hôte complète depuis la liste (inutile de recréer).
+              let failed: string | null = null;
+              for (const file of files) {
+                try {
+                  await addRoomPhoto(property.id, created.id, await uploadFile(file, "property_photo"));
+                } catch (err) {
+                  failed = `${file.name} : ${uploadErrorMessage(err)}`;
+                  break;
+                }
+              }
               await reload();
               setMode("idle");
+              setError(failed ? `Chambre créée, mais une photo n'a pas été envoyée (${failed}). Ajoutez-la depuis la liste.` : null);
             }}
           />
         </div>
