@@ -27,6 +27,7 @@ import {
 } from "@/lib/api";
 import { PROPERTY_STATUS_LABEL, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
+import { canEditProperty, ROLE_LABEL } from "@/lib/team-api";
 import { useMe } from "@/lib/use-me";
 import { ACCEPT_ATTRIBUTE, uploadErrorMessage, uploadFile } from "@/lib/upload";
 
@@ -56,11 +57,43 @@ export default function ManagePropertyPage() {
             {property.city} · {property.quarter} · {PROPERTY_TYPE_LABEL[property.propertyType]}
           </p>
 
-          <PublishCard property={property} reload={reload} />
-          <RoomsCard property={property} reload={reload} />
-          <AmenitiesCard property={property} reload={reload} />
-          <PhotosCard property={property} reload={reload} />
-          <InfoCard property={property} reload={reload} />
+          {property.myRole && property.myRole !== "MANAGER" && (
+            <p className="mt-3 rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">Votre rôle sur ce logement : <strong>{ROLE_LABEL[property.myRole]}</strong>.</p>
+          )}
+          {canEditProperty(property.myRole) ? (
+            <>
+              {(!property.myRole || property.myRole === "MANAGER") && <PublishCard property={property} reload={reload} />}
+              {(!property.myRole || property.myRole === "MANAGER") && (
+                <Card title="Équipe du logement">
+                  <p className="text-sm text-slate-600">Ajoutez un gestionnaire, un réceptionniste ou un comptable, avec des droits précis.</p>
+                  <Link
+                    href={`/hote/logements/${property.id}/equipe`}
+                    className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+                  >
+                    Gérer l&apos;équipe
+                  </Link>
+                </Card>
+              )}
+              <RoomsCard property={property} reload={reload} />
+              <AmenitiesCard property={property} reload={reload} />
+              <PhotosCard property={property} reload={reload} />
+              <InfoCard property={property} reload={reload} />
+            </>
+          ) : (
+            <Card title="Vos accès">
+              <p className="text-sm text-slate-600">
+                {property.myRole === "ACCOUNTANT"
+                  ? "Vous suivez les finances de ce logement."
+                  : "Vous traitez les réservations et les messages de ce logement."}
+              </p>
+              <Link
+                href={property.myRole === "ACCOUNTANT" ? "/hote/finances" : "/hote/reservations"}
+                className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+              >
+                {property.myRole === "ACCOUNTANT" ? "Ouvrir les finances" : "Ouvrir les réservations"}
+              </Link>
+            </Card>
+          )}
         </>
       )}
     </AppShell>

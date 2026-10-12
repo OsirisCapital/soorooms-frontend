@@ -1,3 +1,4 @@
+import { canManageBookings } from "./team-api";
 import { getMyKyc, getPropertyBookings, listMyProperties, type HostProperty, type KycStatus, type PropertyBooking } from "./api";
 
 export type HostBooking = PropertyBooking & { propertyId: string; propertyTitle: string };
@@ -21,7 +22,8 @@ export function needsHostAction(booking: PropertyBooking) {
 export async function loadHostOverview(): Promise<HostOverview> {
   const [properties, kyc] = await Promise.all([listMyProperties(), getMyKyc()]);
   const lists = await Promise.all(
-    properties.map((property) =>
+    // Un comptable n'a pas accès aux réservations : on ne les demande pas (le serveur les refuserait).
+    properties.filter((property) => canManageBookings(property.myRole)).map((property) =>
       getPropertyBookings(property.id).then((bookings) =>
         bookings.map((booking): HostBooking => ({ ...booking, propertyId: property.id, propertyTitle: property.title })),
       ),

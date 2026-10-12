@@ -526,6 +526,8 @@ export interface PropertyAmenities {
   additionalEquipments: string[];
 }
 
+export type CollaboratorRole = "MANAGER" | "CO_MANAGER" | "AGENT" | "RECEPTIONIST" | "ACCOUNTANT";
+
 export interface HostProperty {
   id: string;
   title: string;
@@ -539,6 +541,8 @@ export interface HostProperty {
   longitude: number;
   status: PropertyStatus;
   isVerifiedByAgent?: boolean;
+  /** Rôle de la personne connectée sur ce logement. */
+  myRole?: CollaboratorRole | null;
   amenities: PropertyAmenities | null;
   rooms: PropertyRoom[];
   photos?: PropertyPhoto[];

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { Icon } from "@/components/Icon";
 import { listMyProperties } from "@/lib/api";
+import { ROLE_LABEL } from "@/lib/team-api";
 import { PROPERTY_STATUS_LABEL, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
 
@@ -50,6 +51,7 @@ export default function HostPropertiesPage() {
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   {property.rooms.length} chambre{property.rooms.length > 1 ? "s" : ""}
+                  {property.myRole && property.myRole !== "MANAGER" ? ` · Votre rôle : ${ROLE_LABEL[property.myRole]}` : ""}
                 </p>
               </Link>
             </li>
