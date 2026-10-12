@@ -407,6 +407,8 @@ export interface BookingReceipt {
   totalPaid: number;
   paymentMethod: string;
   refunded: boolean;
+  /** Facture entreprise, null tant que le voyageur ne l'a pas demandée. */
+  invoice: { number: string; company: string; address: string; taxId: string | null; issuedAt: string } | null;
 }
 
 /** Attestation de réservation signée par l'hôte (démarches de visa / court séjour). */
@@ -465,6 +467,13 @@ export const verifyAttestation = (code: string) =>
 
 export function getReceipt(id: string) {
   return authRequest<BookingReceipt>(`/bookings/${encodeURIComponent(id)}/receipt`);
+}
+
+export function issueInvoice(id: string, payload: { company: string; address: string; taxId?: string }) {
+  return authRequest<BookingReceipt>(`/bookings/${encodeURIComponent(id)}/invoice`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getBooking(id: string) {
