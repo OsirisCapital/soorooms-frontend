@@ -28,6 +28,11 @@ export default function BookingPage() {
          Voir mon reçu
        </Link>
      )}
+     {["CONFIRMED_ESCROW", "COMPLETED"].includes(data.status) && (
+       <Link href={`/profil/reservations/${id}/attestation`} className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center font-semibold text-[var(--color-teal)]">
+         Attestation de réservation
+       </Link>
+     )}
      <Link href={`/messages/${id}`} className="mt-4 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center font-semibold text-[var(--color-teal)]">
        Envoyer un message à l&apos;hôte
      </Link>

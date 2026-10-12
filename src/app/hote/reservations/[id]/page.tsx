@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { BookingPanel } from "@/components/BookingPanel";
+import { AttestationSign } from "@/components/host/AttestationSign";
 import { getBooking } from "@/lib/api";
 import { useAsyncData } from "@/lib/use-async-data";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export default function HostBookingPage() {
       ) : (
            <>
      <BookingPanel initial={data} viewer="HOST" />
+     {["CONFIRMED_ESCROW", "COMPLETED"].includes(data.status) && <AttestationSign bookingId={id} />}
      <Link href={`/messages/${id}`} className="mt-4 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center font-semibold text-[var(--color-teal)]">
        Envoyer un message au voyageur
      </Link>

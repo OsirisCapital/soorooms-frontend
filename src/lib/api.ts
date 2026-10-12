@@ -409,6 +409,60 @@ export interface BookingReceipt {
   refunded: boolean;
 }
 
+/** Attestation de réservation signée par l'hôte (démarches de visa / court séjour). */
+export interface BookingAttestation {
+  code: string;
+  bookingReference: string;
+  signedAt: string;
+  signerName: string;
+  occupantName: string;
+  payerName: string;
+  property: { title: string; city: string; quarter: string };
+  roomName: string;
+  checkInDate: string;
+  checkOutDate: string;
+  nights: number;
+  valid: boolean;
+}
+
+export interface AttestationVerification {
+  valid: boolean;
+  code: string;
+  occupantName: string;
+  property: { title: string; city: string; quarter: string };
+  checkInDate: string;
+  checkOutDate: string;
+  nights: number;
+  signedAt: string;
+  signerName: string;
+}
+
+/** Où en est l'attestation : sur demande uniquement, pour les voyageurs remplissant les conditions. */
+export interface AttestationState {
+  status: "NOT_ELIGIBLE" | "AVAILABLE" | "REQUESTED" | "DECLINED" | "SIGNED";
+  reasons: string[];
+  country: string | null;
+  declineReason: string | null;
+  attestation: BookingAttestation | null;
+}
+
+export const getAttestation = (id: string) => authRequest<AttestationState>(`/bookings/${encodeURIComponent(id)}/attestation`);
+export const requestAttestation = (id: string, country: string) =>
+  authRequest<{ alreadySigned: boolean }>(`/bookings/${encodeURIComponent(id)}/attestation/request`, {
+    method: "POST",
+    body: JSON.stringify({ country }),
+  });
+export const declineAttestation = (id: string, reason: string) =>
+  authRequest<{ declined: boolean }>(`/bookings/${encodeURIComponent(id)}/attestation/decline`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+export const signAttestation = (id: string) =>
+  authRequest<BookingAttestation>(`/bookings/${encodeURIComponent(id)}/attestation/sign`, { method: "POST" });
+/** Public : aucune connexion requise. */
+export const verifyAttestation = (code: string) =>
+  request<AttestationVerification>(`/attestations/verify/${encodeURIComponent(code)}`);
+
 export function getReceipt(id: string) {
   return authRequest<BookingReceipt>(`/bookings/${encodeURIComponent(id)}/receipt`);
 }
