@@ -121,6 +121,12 @@ function PublishCard({ property, reload }: CardProps) {
           QR code et affiche à imprimer
         </Link>
         <Link
+          href={`/hote/logements/${property.id}/partager`}
+          className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+        >
+          Carte à partager (WhatsApp, Facebook)
+        </Link>
+        <Link
           href={`/hote/logements/${property.id}/verification`}
           className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
         >
