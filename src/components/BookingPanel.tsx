@@ -378,6 +378,13 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
                 >
                   J&apos;ai payé — vérifier
                 </Button>
+                <p className="text-center text-xs text-slate-500">
+                  En payant, vous acceptez la{" "}
+                  <Link href="/remboursement" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+                    politique d&apos;annulation et de remboursement
+                  </Link>
+                  .
+                </p>
               </div>
               <PayLinkCard bookingId={booking.id} initiallyActive={Boolean(booking.payLinkActive)} propertyTitle={booking.room.property.title} />
             </>

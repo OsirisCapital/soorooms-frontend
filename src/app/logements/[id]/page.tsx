@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -602,7 +603,11 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
               />
             </label>
             <p className="mt-2 text-xs text-slate-500">
-              Le prix n&apos;est définitif que lorsque l&apos;hôte l&apos;a accepté. Vous ne payez qu&apos;ensuite.
+              Le prix n&apos;est définitif que lorsque l&apos;hôte l&apos;a accepté. Vous ne payez qu&apos;ensuite.{" "}
+              <Link href="/remboursement" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+                Politique d&apos;annulation et de remboursement
+              </Link>
+              .
             </p>
 
             {error && <p className="mt-3 text-sm text-red-500">{error}</p>}

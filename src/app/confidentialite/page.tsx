@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPage() {
-  return <LegalLayout document={PRIVACY} other={{ href: "/conditions", label: "Conditions d'utilisation" }} />;
+  return <LegalLayout document={PRIVACY} others={[{ href: "/conditions", label: "Conditions d'utilisation" }, { href: "/remboursement", label: "Remboursement" }]} />;
 }

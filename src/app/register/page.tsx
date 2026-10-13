@@ -110,9 +110,13 @@ export default function RegisterPage() {
      <Link href="/conditions" target="_blank" className="font-medium text-[var(--color-teal)] underline">
        Conditions d&apos;utilisation
      </Link>{" "}
-     et la{" "}
+     , la{" "}
      <Link href="/confidentialite" target="_blank" className="font-medium text-[var(--color-teal)] underline">
        Politique de confidentialité
+     </Link>{" "}
+     et la{" "}
+     <Link href="/remboursement" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+       Politique de remboursement
      </Link>
    </span>
           </label>

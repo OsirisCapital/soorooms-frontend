@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function TermsPage() {
-  return <LegalLayout document={TERMS} other={{ href: "/confidentialite", label: "Politique de confidentialité" }} />;
+  return <LegalLayout document={TERMS} others={[{ href: "/confidentialite", label: "Politique de confidentialité" }, { href: "/remboursement", label: "Remboursement" }]} />;
 }

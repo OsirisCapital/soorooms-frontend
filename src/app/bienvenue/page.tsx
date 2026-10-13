@@ -62,6 +62,10 @@ export default function WelcomePage() {
           <Link href="/confidentialite" className="font-medium text-[var(--color-teal)] underline">
             politique de confidentialité
           </Link>
+          . Les règles d&apos;annulation sont dans la{" "}
+          <Link href="/remboursement" className="font-medium text-[var(--color-teal)] underline">
+            politique de remboursement
+          </Link>
           .
         </p>
       </div>

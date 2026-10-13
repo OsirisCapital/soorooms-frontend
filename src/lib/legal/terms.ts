@@ -34,7 +34,7 @@ export const TERMS: LegalDocument = {
         "Les prix sont affichés en francs CFA (FCFA). Le prix total, les dates et les conditions propres au logement vous sont présentés avant le paiement.",
         "Une réservation est confirmée une fois le paiement reçu. Vous recevez alors une confirmation dans l'application et par e-mail.",
         "Vous vous engagez à respecter le logement, le règlement de l'hôte, le nombre de personnes prévu et les voisins.",
-        "Les conditions d'annulation et de remboursement applicables sont celles indiquées sur l'annonce au moment de la réservation.",
+        "Les conditions d'annulation et de remboursement sont détaillées dans la Politique d'annulation et de remboursement (page « Remboursement »), disponible avant chaque paiement.",
       ],
     },
     {

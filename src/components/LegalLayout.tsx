@@ -6,7 +6,7 @@ import type { LegalDocument } from "@/lib/legal/types";
  * Page de texte légal accessible sans compte : en-tête avec logo, sommaire cliquable,
  * sections numérotées. Composant serveur — aucune interactivité nécessaire.
  */
-export function LegalLayout({ document, other }: { document: LegalDocument; other: { href: string; label: string } }) {
+export function LegalLayout({ document, others }: { document: LegalDocument; others: { href: string; label: string }[] }) {
   return (
     <>
       <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-cream)]/95 backdrop-blur">
@@ -61,7 +61,13 @@ export function LegalLayout({ document, other }: { document: LegalDocument; othe
         </div>
 
         <p className="mt-12 border-t border-[var(--color-border)] pt-6 text-sm text-slate-500">
-          Voir aussi : <Link href={other.href} className="font-semibold text-[var(--color-teal)]">{other.label}</Link>
+          Voir aussi :{" "}
+          {others.map((o, i) => (
+            <span key={o.href}>
+              {i > 0 && " · "}
+              <Link href={o.href} className="font-semibold text-[var(--color-teal)]">{o.label}</Link>
+            </span>
+          ))}
         </p>
       </main>
     </>
