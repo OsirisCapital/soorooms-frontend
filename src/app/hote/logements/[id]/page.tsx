@@ -77,6 +77,15 @@ export default function ManagePropertyPage() {
                 </Card>
               )}
               <RoomsCard property={property} reload={reload} />
+              <Card title="Avis des voyageurs">
+                <p className="text-sm text-slate-600">Lisez les avis laissés après les séjours et répondez-y publiquement.</p>
+                <Link
+                  href={`/hote/logements/${property.id}/avis`}
+                  className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+                >
+                  Voir les avis
+                </Link>
+              </Card>
               <Card title="Calendrier et disponibilités">
                 <p className="text-sm text-slate-600">Voyez l&apos;occupation jour par jour et fermez des dates (travaux, séjour hors plateforme…) pour éviter toute double réservation.</p>
                 <Link

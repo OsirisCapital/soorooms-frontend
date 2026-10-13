@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { FavoriteStar } from "@/components/FavoriteStar";
 import { NapBulb } from "@/components/NapBulb";
 import { PropertyPhoto } from "@/components/PropertyPhoto";
+import { PropertyReviews } from "@/components/PropertyReviews";
 import { Button } from "@/components/ui/Button";
 import { ApiError, createBooking, getProperty, type EventSlot, type PropertyDetail, type StayTerm } from "@/lib/api";
 import { EVENT_SLOT_LABEL, EVENT_TYPES, formatFcfa, nextDay, nightsBetween, PROPERTY_TYPE_LABEL, STAY_TERM_LABEL } from "@/lib/booking-labels";
@@ -233,6 +234,8 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
           </ul>
         </section>
       )}
+
+      <PropertyReviews propertyId={property.id} />
 
       <form onSubmit={handleBook} className="mt-8 rounded-3xl bg-white p-5 shadow-sm">
         <h2 className="font-display text-lg font-semibold text-[var(--color-teal)]">Réserver</h2>

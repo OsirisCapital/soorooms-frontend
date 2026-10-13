@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { BookingPanel } from "@/components/BookingPanel";
+import { ReviewBooking } from "@/components/ReviewBooking";
 import { getBooking } from "@/lib/api";
 import { useAsyncData } from "@/lib/use-async-data";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export default function BookingPage() {
       ) : (
            <>
      <BookingPanel initial={data} viewer="TRAVELER" />
+     {data.status === "COMPLETED" && <ReviewBooking bookingId={id} />}
      {["CONFIRMED_ESCROW", "COMPLETED", "DISPUTED"].includes(data.status) && (
        <Link href={`/profil/reservations/${id}/recu`} className="mt-4 block rounded-full bg-[var(--color-teal-600)] px-5 py-3 text-center font-semibold text-white">
          Voir mon reçu

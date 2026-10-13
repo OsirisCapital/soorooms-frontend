@@ -25,6 +25,7 @@ const SECTIONS: Array<{ href: string; label: string; permission: Permission }> =
   { href: "/admin/mes-visites", label: "Mes visites", permission: "visits.perform" },
   { href: "/admin/frais", label: "Frais", permission: "settings.manage" },
   { href: "/admin/journal", label: "Journal", permission: "audit.view" },
+  { href: "/admin/erreurs", label: "Erreurs", permission: "audit.view" },
 ];
 
 const Notice = ({ children }: { children: ReactNode }) => (
