@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { CancelBooking, RefundStatus } from "@/components/CancelBooking";
 import { PayLinkCard } from "@/components/PayLinkCard";
 import { Button } from "@/components/ui/Button";
 import {
@@ -474,8 +475,15 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
         </section>
       )}
 
+      {(booking.status === "NEGOTIATING" || booking.status === "PENDING_PAYMENT" || booking.status === "DEPOSIT_PAID" || booking.status === "CONFIRMED_ESCROW") && (
+        <CancelBooking bookingId={booking.id} viewer={viewer} onCancelled={setBooking} />
+      )}
+
       {booking.status === "CANCELLED" && (
-        <p className="mt-5 rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">Cette réservation a été annulée.</p>
+        <>
+          <p className="mt-5 rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">Cette réservation a été annulée.</p>
+          {isTraveler && booking.refund && <RefundStatus bookingId={booking.id} refund={booking.refund} onSaved={refresh} />}
+        </>
       )}
     </>
   );

@@ -19,7 +19,7 @@ export const REFUNDS: LegalDocument = {
       title: "1. Le principe",
       items: [
         "Le remboursement est calculé sur le montant que vous avez réellement payé (prix accepté par l'hôte, après négociation éventuelle).",
-        "Il est versé à la personne qui a payé, avec le même moyen de paiement lorsque c'est possible (Mobile Money ou carte). Si un proche a payé avec un lien de paiement, c'est lui qui est remboursé.",
+        "Il est envoyé par Mobile Money (MTN ou Orange) sur le numéro que vous indiquez au moment de l'annulation, après vérification par notre équipe. Si un proche a payé pour vous avec un lien de paiement, indiquez son numéro pour qu'il soit remboursé directement.",
         "Les délais ci-dessous se comptent à partir de l'heure d'arrivée prévue, heure du Cameroun.",
       ],
     },
@@ -97,7 +97,8 @@ export const REFUNDS: LegalDocument = {
       id: "contact",
       title: "10. Demander une annulation",
       paragraphs: [
-        "Pour annuler une réservation, utilisez la rubrique « Aide et support » de votre profil en indiquant la réservation concernée.",
+        "Ouvrez la réservation dans votre profil et touchez « Annuler la réservation » : le montant qui vous sera remboursé s'affiche avant que vous confirmiez. Indiquez ensuite le numéro Mobile Money où recevoir votre remboursement.",
+        "Une fois l'heure d'arrivée passée, l'annulation en ligne n'est plus possible : écrivez-nous via la rubrique « Aide et support » de votre profil en indiquant la réservation concernée.",
         contactSentence,
       ],
     },

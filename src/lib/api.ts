@@ -420,6 +420,8 @@ export interface BookingDetail {
   depositPercent?: number | null;
   balanceDueAt?: string | null;
   nextPayment?: { kind: "FULL" | "DEPOSIT" | "BALANCE"; amount: number } | null;
+  /** Remboursement prévu après annulation (voyageur seulement). */
+  refund?: { amount: number; status: "TO_SEND" | "SENDING" | "PROCESSING" | "PAID" | "FAILED"; hasNumber: boolean } | null;
   currency?: string;
   createdAt: string;
   /** Du plus récent au plus ancien : offers[0] est l'offre en cours. */
