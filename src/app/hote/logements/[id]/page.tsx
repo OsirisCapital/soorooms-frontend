@@ -77,6 +77,15 @@ export default function ManagePropertyPage() {
                 </Card>
               )}
               <RoomsCard property={property} reload={reload} />
+              <Card title="Calendrier et disponibilités">
+                <p className="text-sm text-slate-600">Voyez l&apos;occupation jour par jour et fermez des dates (travaux, séjour hors plateforme…) pour éviter toute double réservation.</p>
+                <Link
+                  href={`/hote/logements/${property.id}/calendrier`}
+                  className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
+                >
+                  Ouvrir le calendrier
+                </Link>
+              </Card>
               {property.propertyType !== "STUDENT_RESIDENCE" && (
                 <Card title="Options payantes">
                   <p className="text-sm text-slate-600">

@@ -12,6 +12,7 @@ const SECTIONS: Array<{ href: string; label: string; permission: Permission }> =
   { href: "/admin", label: "Tableau de bord", permission: "dashboard.view" },
   { href: "/admin/accreditations", label: "Accréditations", permission: "kyc.review" },
   { href: "/admin/support", label: "Support", permission: "support.manage" },
+  { href: "/admin/numeros-support", label: "Numéros WhatsApp", permission: "settings.manage" },
   { href: "/admin/annonces", label: "Annonces", permission: "announcements.manage" },
   { href: "/admin/versions", label: "Versions", permission: "releases.manage" },
   { href: "/admin/taches", label: "Tâches", permission: "dashboard.view" },

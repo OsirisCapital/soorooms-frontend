@@ -998,3 +998,6 @@ export function setEmail(email: string, currentPassword: string) {
     body: JSON.stringify({ email, currentPassword }),
   });
 }
+
+/** Appel sans jeton, pour les routes publiques d'autres modules (ex. numéros du support). */
+export const publicRequest = request;
