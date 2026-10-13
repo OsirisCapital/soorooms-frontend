@@ -18,6 +18,12 @@ export function formatDay(isoDate: string) {
   });
 }
 
+/** Quand : « 6 mars 2099 → 9 mars 2099 », ou « 6 mars 2099 · sieste 15 h – 18 h » pour une sieste. */
+export function formatWhen(b: { checkInDate: string; checkOutDate: string; napStartHour?: number | null; napHours?: number | null }) {
+  if (b.napStartHour != null) return `${formatDay(b.checkInDate)} · sieste ${b.napStartHour} h – ${b.napStartHour + (b.napHours ?? 1)} h`;
+  return `${formatDay(b.checkInDate)} → ${formatDay(b.checkOutDate)}`;
+}
+
 export function formatFcfa(amount: string | number) {
   return `${Number(amount).toLocaleString("fr-FR")} FCFA`;
 }
@@ -29,6 +35,7 @@ export const PROPERTY_TYPE_LABEL: Record<string, string> = {
   GUEST_HOUSE: "Maison d'hôtes",
   EVENT_HALL: "Salle de fêtes",
   STUDENT_RESIDENCE: "Résidence étudiante",
+  HOSTEL: "Auberge",
 };
 
 export const STAY_TERM_LABEL: Record<string, string> = {

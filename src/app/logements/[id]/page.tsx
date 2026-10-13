@@ -4,11 +4,12 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { FavoriteStar } from "@/components/FavoriteStar";
+import { NapBulb } from "@/components/NapBulb";
 import { PropertyPhoto } from "@/components/PropertyPhoto";
 import { Button } from "@/components/ui/Button";
 import { ApiError, createBooking, getProperty, type EventSlot, type PropertyDetail, type StayTerm } from "@/lib/api";
 import { EVENT_SLOT_LABEL, EVENT_TYPES, formatFcfa, nextDay, nightsBetween, PROPERTY_TYPE_LABEL, STAY_TERM_LABEL } from "@/lib/booking-labels";
-import { termEnd } from "@/lib/rooms";
+import { formatNapPrice, napRange, termEnd } from "@/lib/rooms";
 import { useAsyncData } from "@/lib/use-async-data";
 
 // Sans photo, une case colorée tient la place de la galerie.
@@ -65,6 +66,10 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const [eventGuests, setEventGuests] = useState("");
   const [optionIds, setOptionIds] = useState<string[]>([]);
   const [units, setUnits] = useState(1);
+  // Siestes : séjour de quelques heures, proposé par les chambres qui l'acceptent.
+  const hasNapRooms = property.rooms.some((r) => r.allowsNap);
+  const [napMode, setNapMode] = useState(initial.get("nap") === "1" && hasNapRooms);
+  const [napHour, setNapHour] = useState("");
   const [offer, setOffer] = useState("");
   const [forSomeone, setForSomeone] = useState(false);
   const [guestName, setGuestName] = useState("");
@@ -75,13 +80,13 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
   const today = new Date().toISOString().slice(0, 10);
   // Une salle est réservée pour une date : le lendemain sert seulement de borne de fin.
   // Une résidence se loue au forfait : la fin est calculée (6 ou 12 mois), jamais saisie.
-  const endDate = isHall ? nextDay(checkIn) : isResidence ? termEnd(checkIn, stayTerm) : checkOut;
-  const nights = isHall || isResidence ? (checkIn ? 1 : 0) : nightsBetween(checkIn, checkOut);
+  const endDate = isHall || napMode ? nextDay(checkIn) : isResidence ? termEnd(checkIn, stayTerm) : checkOut;
+  const nights = isHall || isResidence || napMode ? (checkIn ? 1 : 0) : nightsBetween(checkIn, checkOut);
 
   // Une fois les deux dates choisies, on redemande les unités libres sur ce séjour précis.
   const [leftByRoom, setLeftByRoom] = useState<Record<string, number>>({});
   useEffect(() => {
-    if (nights < 1) return;
+    if (nights < 1 || napMode) return;
     let cancelled = false;
     getProperty(property.id, { checkInDate: checkIn, checkOutDate: endDate })
       .then((fresh) => {
@@ -93,11 +98,18 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
     return () => {
       cancelled = true;
     };
-  }, [property.id, checkIn, endDate, nights]);
+  }, [property.id, checkIn, endDate, nights, napMode]);
 
   const leftOf = (r: PropertyDetail["rooms"][number]) => (nights >= 1 ? leftByRoom[r.id] : undefined) ?? r.unitsLeft ?? r.unitCount;
-  const room = property.rooms.find((r) => r.id === roomId);
-  const roomFull = room ? leftOf(room) < 1 : false;
+  const visibleRooms = napMode ? property.rooms.filter((r) => r.allowsNap) : property.rooms;
+  const room = visibleRooms.find((r) => r.id === roomId) ?? visibleRooms[0];
+  const roomFull = room && !napMode ? leftOf(room) < 1 : false;
+  // Heures de début possibles : la sieste doit finir avant minuit, et ne pas commencer dans le passé.
+  const napLength = room?.napHours ?? 3;
+  const nowHour = new Date().getHours();
+  const napStartOptions = Array.from({ length: 24 }, (_, h) => h).filter(
+    (h) => h + napLength <= 24 && (checkIn !== today || h > nowHour),
+  );
   // Réservation de groupe : on ne peut pas demander plus de chambres qu'il n'en reste.
   const maxUnits = !isHall && room ? Math.max(1, leftOf(room)) : 1;
   const groupUnits = Math.min(units, maxUnits);
@@ -110,20 +122,28 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
     termPriceOf(room, stayTerm) != null ? stayTerm : termPriceOf(room, "SEMESTER") != null ? "SEMESTER" : "YEAR";
   const hallOptions = property.hallOptions ?? [];
   const optionsTotal = hallOptions.filter((o) => optionIds.includes(o.id)).reduce((sum, o) => sum + Number(o.price), 0);
+  // Extras d'un séjour : facturés une fois, ou chaque nuit pour toute la réservation.
+  const stayExtras = hallOptions.filter((o) => optionIds.includes(o.id));
+  const extrasSum = stayExtras.reduce((sum, o) => sum + Number(o.price) * (o.perNight ? Math.max(1, nights) : 1), 0);
   const listedTotal = room
-    ? isHall
+    ? napMode
+      ? Number(room.napPrice ?? 0) + extrasSum
+      : isHall
       ? Number(room.basePrice) + optionsTotal
       : isResidence
         ? (termPriceOf(room, effectiveTerm) ?? Number(room.basePrice)) * groupUnits
-        : Number(room.basePrice) * nights * groupUnits
+        : Number(room.basePrice) * nights * groupUnits + extrasSum
     : 0;
   const amenities = amenityLabels(property.amenities);
 
   async function handleBook(event: React.FormEvent) {
     event.preventDefault();
     if (!room) return;
+    if (napMode && checkIn && napHour === "") {
+      return setError("Choisissez l'heure de début de la sieste.");
+    }
     if (nights < 1) {
-      return setError(isHall ? "Choisissez la date de l'événement." : isResidence ? "Choisissez votre date d'entrée." : "Choisissez une date d'arrivée et une date de départ.");
+      return setError(napMode ? "Choisissez le jour de la sieste." : isHall ? "Choisissez la date de l'événement." : isResidence ? "Choisissez votre date d'entrée." : "Choisissez une date d'arrivée et une date de départ.");
     }
     const guests = Number(eventGuests);
     if (isHall) {
@@ -146,12 +166,15 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
       const booking = await createBooking({
         roomId: room.id,
         checkInDate: checkIn,
-        ...(isHall
+        ...(napMode
+          ? { nap: true, napStartHour: Number(napHour) }
+          : isHall
           ? { eventType, eventSlot, eventGuests: guests, optionIds }
           : isResidence
             ? { stayTerm: effectiveTerm }
             : { checkOutDate: checkOut }),
-        ...(groupUnits > 1 ? { units: groupUnits } : {}),
+        ...(groupUnits > 1 && !napMode ? { units: groupUnits } : {}),
+        ...(!isHall && !isResidence && optionIds.length ? { optionIds } : {}),
         proposedPrice,
         ...(forSomeone ? { guestName: guestName.trim(), guestPhone: guestPhone.trim() || undefined } : {}),
       });
@@ -213,21 +236,42 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
       <form onSubmit={handleBook} className="mt-8 rounded-3xl bg-white p-5 shadow-sm">
         <h2 className="font-display text-lg font-semibold text-[var(--color-teal)]">Réserver</h2>
 
+        {hasNapRooms && (
+          <div role="tablist" aria-label="Type de réservation" className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-[var(--color-cream-soft)] p-1">
+            {([false, true] as const).map((nap) => (
+              <button
+                key={String(nap)}
+                type="button"
+                role="tab"
+                aria-selected={napMode === nap}
+                onClick={() => {
+                  setNapMode(nap);
+                  setNapHour("");
+                  setOptionIds([]);
+                }}
+                className={`rounded-xl px-3 py-2 text-sm font-semibold ${napMode === nap ? "bg-white text-[var(--color-teal)] shadow-sm" : "text-slate-500"}`}
+              >
+                {nap ? "Sieste (quelques heures)" : "Séjour (à la nuit)"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {property.rooms.length === 0 ? (
           <p className="mt-3 text-sm text-slate-600">Aucune chambre n&apos;est disponible pour ce logement.</p>
         ) : (
           <>
             <fieldset className="mt-4 flex flex-col gap-2">
               <legend className="sr-only">Chambre</legend>
-              {property.rooms.map((r) => (
+              {visibleRooms.map((r) => (
                 <label
                   key={r.id}
                   className={`flex cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
-                    r.id === roomId ? "border-[var(--color-terracotta)] bg-[var(--color-cream)]" : "border-[var(--color-border)]"
+                    r.id === room?.id ? "border-[var(--color-terracotta)] bg-[var(--color-cream)]" : "border-[var(--color-border)]"
                   }`}
                 >
                   <span className="flex items-center gap-3">
-                    <input type="radio" name="room" value={r.id} checked={r.id === roomId} onChange={() => setRoomId(r.id)} />
+                    <input type="radio" name="room" value={r.id} checked={r.id === room?.id} onChange={() => setRoomId(r.id)} />
                     <span>
                       <span className="block font-medium text-[var(--color-ink)]">{r.name}</span>
                       {r.photos && r.photos.length > 0 && (
@@ -236,6 +280,14 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                             <PropertyPhoto key={photo.id} url={photo.url} width={200} className="h-14 w-20 rounded-lg object-cover" />
                           ))}
                         </span>
+                      )}
+                      {napMode && (
+                        <span className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                          <NapBulb on={Boolean(r.napBulb)} size={18} /> {r.napBulb ? "Ampoule allumée" : "Ampoule éteinte"}
+                        </span>
+                      )}
+                      {r.equipments && r.equipments.length > 0 && (
+                        <span className="mt-1 block text-xs text-slate-500">{r.equipments.slice(0, 6).join(" · ")}</span>
                       )}
                       <span className="block text-xs text-slate-500">
                         {isHall
@@ -247,7 +299,9 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    {isResidence ? (
+                    {napMode ? (
+                      <span className="block text-sm font-semibold text-[var(--color-teal)]">{formatNapPrice(r)}</span>
+                    ) : isResidence ? (
                       <>
                         {r.semesterPrice != null && (
                           <span className="block text-sm font-semibold text-[var(--color-teal)]">{Number(r.semesterPrice).toLocaleString("fr-FR")} FCFA/semestre</span>
@@ -261,15 +315,53 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
                         {Number(r.basePrice).toLocaleString("fr-FR")} FCFA/{isHall ? "événement" : "nuit"}
                       </span>
                     )}
-                    <span className={`block text-xs ${leftOf(r) < 1 ? "font-semibold text-red-500" : "text-slate-500"}`}>
+                    {!napMode && <span className={`block text-xs ${leftOf(r) < 1 ? "font-semibold text-red-500" : "text-slate-500"}`}>
                       {leftOf(r) < 1 ? (isHall ? "Déjà réservée" : isResidence ? "Complet" : "Complet") : isHall ? "Disponible" : isResidence ? `${leftOf(r)} place${leftOf(r) > 1 ? "s" : ""} libre${leftOf(r) > 1 ? "s" : ""} sur ${r.unitCount}` : `${leftOf(r)} disponible${leftOf(r) > 1 ? "s" : ""} sur ${r.unitCount}`}
-                    </span>
+                    </span>}
                   </span>
                 </label>
               ))}
             </fieldset>
 
-            {isHall ? (
+            {napMode ? (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  Jour
+                  <input
+                    type="date"
+                    min={today}
+                    value={checkIn}
+                    onChange={(e) => {
+                      setCheckIn(e.target.value);
+                      setNapHour("");
+                    }}
+                    required
+                    className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+                  Heure d&apos;arrivée
+                  <select
+                    value={napHour}
+                    onChange={(e) => setNapHour(e.target.value)}
+                    required
+                    className="rounded-xl border border-[var(--color-border)] bg-white px-3 py-2 text-sm text-[var(--color-ink)]"
+                  >
+                    <option value="">Choisir…</option>
+                    {napStartOptions.map((h) => (
+                      <option key={h} value={h}>
+                        {h} h
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {napHour !== "" && (
+                  <p className="col-span-2 text-xs text-slate-500">
+                    Sieste de {napLength} h : {napRange(Number(napHour), napLength)}. La disponibilité du créneau est vérifiée à l&apos;envoi.
+                  </p>
+                )}
+              </div>
+            ) : isHall ? (
               <div className="mt-4 grid grid-cols-1 gap-3">
                 <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
                   Date de l&apos;événement
@@ -423,7 +515,33 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
             </div>
             )}
 
-            {!isHall && room && room.unitCount > 1 && (
+            {!isHall && !isResidence && hallOptions.length > 0 && (
+              <fieldset className="mt-4">
+                <legend className="text-xs font-medium text-slate-500">{napMode ? "À avoir dans la chambre (facultatif)" : "Services et options (facultatif)"}</legend>
+                <ul className="mt-1 flex flex-col gap-2">
+                  {hallOptions.map((o) => (
+                    <li key={o.id}>
+                      <label className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]">
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={optionIds.includes(o.id)}
+                            onChange={(e) => setOptionIds((prev) => (e.target.checked ? [...prev, o.id] : prev.filter((x) => x !== o.id)))}
+                          />
+                          {o.name}
+                        </span>
+                        <span className="text-slate-500">
+                          + {formatFcfa(o.price)}
+                          {o.perNight && !napMode ? " / nuit" : ""}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </fieldset>
+            )}
+
+            {!isHall && !napMode && room && room.unitCount > 1 && (
               <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">
                 Nombre de {isResidence ? "places" : "chambres"} (réservation de groupe)
                 <input
@@ -441,7 +559,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
 
             {nights > 0 && (
               <p className="mt-4 text-sm text-slate-600">
-                {isHall ? "Au tarif affiché (salle + options)" : isResidence ? `Forfait ${effectiveTerm === "SEMESTER" ? "semestre" : "année"}` : `${nights} nuit${nights > 1 ? "s" : ""}${groupUnits > 1 ? ` × ${groupUnits} chambres` : ""} au tarif affiché`} :{" "}
+                {napMode ? `Sieste de ${napLength} h${stayExtras.length ? " + options" : ""} au tarif affiché` : isHall ? "Au tarif affiché (salle + options)" : isResidence ? `Forfait ${effectiveTerm === "SEMESTER" ? "semestre" : "année"}` : `${nights} nuit${nights > 1 ? "s" : ""}${groupUnits > 1 ? ` × ${groupUnits} chambres` : ""}${stayExtras.length ? " + options" : ""} au tarif affiché`} :{" "}
                 <strong className="text-[var(--color-ink)]">{formatFcfa(listedTotal)}</strong>
               </p>
             )}
@@ -472,7 +590,7 @@ function PropertyContent({ property }: { property: PropertyDetail }) {
             )}
 
             <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">
-              {isHall ? "Proposer un autre prix pour l'événement (facultatif)" : isResidence ? "Proposer un autre prix pour le forfait (facultatif)" : "Proposer un autre prix pour le séjour (facultatif)"}
+              {napMode ? "Proposer un autre prix pour la sieste (facultatif)" : isHall ? "Proposer un autre prix pour l'événement (facultatif)" : isResidence ? "Proposer un autre prix pour le forfait (facultatif)" : "Proposer un autre prix pour le séjour (facultatif)"}
               <input
                 type="number"
                 inputMode="numeric"

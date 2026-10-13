@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { EquipmentPicker } from "@/components/EquipmentPicker";
+import { NapBulb } from "@/components/NapBulb";
 import { ApiError, type PropertyRoom, type RoomPayload } from "@/lib/api";
 import { ACCEPT_ATTRIBUTE } from "@/lib/upload";
 
@@ -20,11 +22,13 @@ type Props = {
   hall?: boolean;
   /** Résidence étudiante : forfaits semestre / année, et nombre de places (lits ou chambres). */
   residence?: boolean;
+  /** Hôtel ou auberge : la chambre peut accepter les siestes. */
+  napCapable?: boolean;
   onCancel?: () => void;
 };
 
 /** Formulaire d'une chambre (ou d'un logement entier représenté par une seule chambre). */
-export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false, hall = false, residence = false }: Props) {
+export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhotos = false, hall = false, residence = false, napCapable = false }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [roomType, setRoomType] = useState(initial?.roomType ?? "Chambre");
   const [basePrice, setBasePrice] = useState(initial ? String(Number(initial.basePrice)) : "");
@@ -34,6 +38,11 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
   const [bedroomCount, setBedroomCount] = useState(String(initial?.bedroomCount ?? 1));
   const [bedCount, setBedCount] = useState(String(initial?.bedCount ?? 1));
   const [unitCount, setUnitCount] = useState(String(initial?.unitCount ?? 1));
+  const [equipments, setEquipments] = useState<string[]>(initial?.equipments ?? []);
+  const [allowsNap, setAllowsNap] = useState(initial?.allowsNap ?? false);
+  const [napPrice, setNapPrice] = useState(initial?.napPrice != null ? String(Number(initial.napPrice)) : "");
+  const [napHours, setNapHours] = useState(String(initial?.napHours ?? 3));
+  const [napBulb, setNapBulb] = useState(initial?.napBulb ?? false);
   const [photos, setPhotos] = useState<File[]>([]);
   const photoInput = useRef<HTMLInputElement>(null);
   const previews = useMemo(() => photos.map((f) => URL.createObjectURL(f)), [photos]);
@@ -67,6 +76,13 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
       return setError("Le nombre d'unités doit être un entier entre 1 et 500.");
     }
 
+    const napP = napPrice.trim() === "" ? null : Number(napPrice);
+    const napH = Number(napHours);
+    if (napCapable && allowsNap) {
+      if (napP == null || !Number.isFinite(napP) || napP < 1) return setError("Indiquez le prix de la sieste.");
+      if (!Number.isInteger(napH) || napH < 1 || napH > 12) return setError("La durée d'une sieste est de 1 à 12 heures.");
+    }
+
     if (requirePhotos && photos.length === 0) return setError("Ajoutez au moins une photo de cette chambre.");
 
     setError(null);
@@ -81,6 +97,12 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
         bedCount: beds,
         unitCount: units,
         ...(residence ? { semesterPrice: semester, yearPrice: year } : {}),
+        ...(hall ? {} : { equipments }),
+        ...(napCapable
+          ? allowsNap
+            ? { allowsNap: true, napPrice: napP, napHours: napH, napBulb }
+            : { allowsNap: false }
+          : {}),
       }, photos);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Enregistrement impossible. Réessayez.");
@@ -145,6 +167,33 @@ export function RoomForm({ initial, submitLabel, onSubmit, onCancel, requirePhot
         {numberField("Lits", bedCount, setBedCount)}
       </div>
         </>
+      )}
+      {!hall && <EquipmentPicker value={equipments} onChange={setEquipments} label="Équipements de la chambre" />}
+      {napCapable && !hall && !residence && (
+        <fieldset className="rounded-2xl border border-[var(--color-border)] p-4">
+          <legend className="px-1 text-xs font-medium text-slate-500">Siestes</legend>
+          <label className="flex items-center gap-3 text-sm text-[var(--color-ink)]">
+            <input type="checkbox" checked={allowsNap} onChange={(e) => setAllowsNap(e.target.checked)} className="h-5 w-5" />
+            Cette chambre accepte les siestes (séjours de quelques heures)
+          </label>
+          {allowsNap && (
+            <div className="mt-3 flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                {numberField("Prix d'une sieste (FCFA)", napPrice, setNapPrice, 0)}
+                {numberField("Durée (heures)", napHours, setNapHours)}
+              </div>
+              <p className="-mt-1 text-xs text-slate-500">Le client peut aussi proposer un autre prix, que vous acceptez ou non.</p>
+              <div className="flex items-center gap-3">
+                <NapBulb on={napBulb} onToggle={() => setNapBulb((v) => !v)} />
+                <p className="text-xs text-slate-500">
+                  Touchez l&apos;ampoule pour l&apos;allumer. Les clients peuvent filtrer les chambres selon ampoule allumée ou éteinte.
+                  {" "}
+                  <strong>{napBulb ? "Allumée." : "Éteinte."}</strong>
+                </p>
+              </div>
+            </div>
+          )}
+        </fieldset>
       )}
       {requirePhotos && (
         <div>

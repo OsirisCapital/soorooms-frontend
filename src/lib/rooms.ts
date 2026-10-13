@@ -5,11 +5,12 @@ import type { RoomSearchResult } from "./api";
  * apparaît plusieurs fois. On garde une carte par logement, avec sa chambre la
  * moins chère, dans l'ordre d'apparition.
  */
-export function dedupeByProperty(rooms: RoomSearchResult[]): RoomSearchResult[] {
+export function dedupeByProperty(rooms: RoomSearchResult[], nap = false): RoomSearchResult[] {
   const best = new Map<string, RoomSearchResult>();
+  const priceOf = (r: RoomSearchResult) => Number(nap ? (r.napPrice ?? r.basePrice) : r.basePrice);
   for (const room of rooms) {
     const known = best.get(room.propertyId);
-    if (!known || Number(room.basePrice) < Number(known.basePrice)) best.set(room.propertyId, room);
+    if (!known || priceOf(room) < priceOf(known)) best.set(room.propertyId, room);
   }
   return [...best.values()];
 }
@@ -39,4 +40,17 @@ export function termEnd(entry: string, term: "SEMESTER" | "YEAR") {
   const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
   d.setUTCDate(Math.min(day, last));
   return d.toISOString().slice(0, 10);
+}
+
+/** Les hôtels et auberges peuvent proposer des siestes. */
+export const canOfferNaps = (propertyType?: string) => propertyType === "HOTEL" || propertyType === "HOSTEL";
+
+/** « 14 h – 17 h » */
+export function napRange(startHour: number, hours: number) {
+  return `${startHour} h – ${startHour + hours} h`;
+}
+
+export function formatNapPrice(room: { napPrice?: string | number | null; napHours?: number | null }) {
+  const price = Number(room.napPrice ?? 0).toLocaleString("fr-FR");
+  return `${price} FCFA/sieste${room.napHours ? ` (${room.napHours} h)` : ""}`;
 }

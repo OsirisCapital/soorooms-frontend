@@ -17,7 +17,7 @@ import {
   type BookingDetail,
   type OfferStatus,
 } from "@/lib/api";
-import { BOOKING_STATUS_LABEL, EVENT_SLOT_LABEL, STAY_TERM_LABEL, formatDay, formatFcfa, nightsBetween } from "@/lib/booking-labels";
+import { BOOKING_STATUS_LABEL, EVENT_SLOT_LABEL, STAY_TERM_LABEL, formatDay, formatFcfa, formatWhen, nightsBetween } from "@/lib/booking-labels";
 import { formatPercent, getCurrentFees, travelerFeeFor } from "@/lib/fees-api";
 import { useAsyncData } from "@/lib/use-async-data";
 import { previewDeposit } from "@/lib/deposit";
@@ -156,12 +156,19 @@ export function BookingPanel({ initial, viewer }: { initial: BookingDetail; view
 
       <section className="mt-5 rounded-2xl bg-white p-4 shadow-sm">
         <p className="text-sm text-slate-600">
-          {booking.eventType
+          {booking.napStartHour != null
+            ? formatWhen(booking)
+            : booking.eventType
             ? `${formatDay(booking.checkInDate)} · ${EVENT_SLOT_LABEL[booking.eventSlot ?? ""] ?? ""}`
             : booking.stayTerm
               ? `${formatDay(booking.checkInDate)} → ${formatDay(booking.checkOutDate)} · ${STAY_TERM_LABEL[booking.stayTerm] ?? booking.stayTerm}`
               : `${formatDay(booking.checkInDate)} → ${formatDay(booking.checkOutDate)} · ${nights} nuit${nights > 1 ? "s" : ""}`}
         </p>
+        {booking.extras && booking.extras.length > 0 && (
+          <p className="mt-1 text-sm text-slate-600">
+            Options : {booking.extras.map((o) => `${o.name} (${formatFcfa(o.price)}${o.perNight ? " / nuit" : ""})`).join(", ")}
+          </p>
+        )}
         {booking.eventType && (
           <div className="mt-1 text-sm text-slate-600">
             <p>

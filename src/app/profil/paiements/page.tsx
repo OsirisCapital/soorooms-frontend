@@ -2,7 +2,7 @@
 
 import { AppShell } from "@/components/AppShell";
 import { getMyBookings, type BookingStatus } from "@/lib/api";
-import { formatDay, formatFcfa } from "@/lib/booking-labels";
+import { formatFcfa, formatWhen } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
 
 // Le backend n'a pas (encore) d'endpoint d'historique de paiements : on
@@ -32,7 +32,7 @@ export default function PaiementsPage() {
               <div className="min-w-0">
                 <p className="truncate font-display font-semibold text-[var(--color-teal)]">{booking.room.name}</p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  {formatDay(booking.checkInDate)} → {formatDay(booking.checkOutDate)}
+                  {formatWhen(booking)}
                 </p>
                 <p className="mt-1 text-xs font-medium text-[var(--color-teal-600)]">{PAYMENT_LABEL[booking.status]}</p>
               </div>

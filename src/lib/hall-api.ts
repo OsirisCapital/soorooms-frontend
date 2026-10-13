@@ -5,7 +5,7 @@ const base = (propertyId: string) => `/properties/${encodeURIComponent(propertyI
 
 export const listHallOptions = (propertyId: string) => authRequest<HallOption[]>(base(propertyId));
 
-export const addHallOption = (propertyId: string, payload: { name: string; price: number }) =>
+export const addHallOption = (propertyId: string, payload: { name: string; price: number; perNight?: boolean }) =>
   authRequest<HallOption>(base(propertyId), { method: "POST", body: JSON.stringify(payload) });
 
 export const removeHallOption = (propertyId: string, optionId: string) =>

@@ -11,7 +11,7 @@ import { addHallOption, listHallOptions, removeHallOption } from "@/lib/hall-api
 import { useAsyncData } from "@/lib/use-async-data";
 
 const messageOf = (err: unknown) => (err instanceof ApiError ? err.message : "Une erreur est survenue. Réessayez.");
-const SUGGESTIONS = ["Sono et DJ", "Traiteur", "Décoration", "Chaises et tables", "Groupe électrogène", "Vidéo / photo"];
+const SUGGESTIONS = ["Navette aéroport", "Petit-déjeuner", "Ménage supplémentaire", "Blanchisserie", "Sono et DJ", "Traiteur", "Décoration", "Chaises et tables", "Groupe électrogène", "Vidéo / photo"];
 
 export default function HallOptionsPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +19,7 @@ export default function HallOptionsPage() {
   const [fresh, setFresh] = useState<HallOption[] | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [perNight, setPerNight] = useState(false);
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const options = fresh ?? loaded ?? [];
@@ -31,10 +32,11 @@ export default function HallOptionsPage() {
     setBusy(true);
     setFormError(null);
     try {
-      await addHallOption(id, { name: name.trim(), price: amount });
+      await addHallOption(id, { name: name.trim(), price: amount, perNight });
       setFresh(await listHallOptions(id));
       setName("");
       setPrice("");
+      setPerNight(false);
     } catch (err) {
       setFormError(messageOf(err));
     } finally {
@@ -56,7 +58,7 @@ export default function HallOptionsPage() {
   return (
     <AppShell backHref={`/hote/logements/${id}`}>
       <h1 className="mb-1 text-xl font-bold text-[var(--color-ink)]">Options payantes</h1>
-      <p className="mb-4 text-sm text-slate-600">Le client les coche à la réservation ; leur prix s&apos;ajoute à celui de la salle.</p>
+      <p className="mb-4 text-sm text-slate-600">Navette, petit-déjeuner, sono, traiteur… Le client les coche à la réservation ; leur prix s&apos;ajoute à celui de la réservation.</p>
 
       {loading ? (
         <div className="h-24 animate-pulse rounded-2xl bg-[var(--color-cream-soft)]" />
@@ -70,7 +72,10 @@ export default function HallOptionsPage() {
               <li key={o.id} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-sm">
                 <div>
                   <p className="font-medium text-[var(--color-ink)]">{o.name}</p>
-                  <p className="text-sm font-semibold text-[var(--color-teal)]">{formatFcfa(o.price)}</p>
+                  <p className="text-sm font-semibold text-[var(--color-teal)]">
+                    {formatFcfa(o.price)}
+                    {o.perNight ? " / nuit" : ""}
+                  </p>
                 </div>
                 <button type="button" onClick={() => remove(o)} className="text-sm text-red-500">
                   Supprimer
@@ -88,6 +93,11 @@ export default function HallOptionsPage() {
               ))}
             </datalist>
             <TextField placeholder="Prix en FCFA" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" />
+            <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+              <input type="checkbox" checked={perNight} onChange={(e) => setPerNight(e.target.checked)} />
+              Facturé chaque nuit (ex. petit-déjeuner). Sinon, une seule fois (ex. navette).
+            </label>
+            <p className="-mt-1 text-xs text-slate-500">Le prix couvre toute la réservation, quel que soit le nombre de chambres. Sans effet pour une salle de fêtes.</p>
             {formError && <p className="text-sm text-red-500">{formError}</p>}
             <Button type="submit" loading={busy}>
               Ajouter

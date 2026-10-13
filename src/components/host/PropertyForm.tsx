@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError, type PropertyPayload, type PropertyType } from "@/lib/api";
 import { PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
-import { CITY_COORDS, coordsForCity } from "@/lib/cities";
+import { coordsForCity } from "@/lib/cities";
+import { COUNTRIES, DEFAULT_COUNTRY, citiesOf } from "@/lib/countries";
 
 const TYPES = Object.keys(PROPERTY_TYPE_LABEL) as PropertyType[];
 
@@ -23,6 +24,7 @@ export function PropertyForm({ initial, submitLabel, onSubmit }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [propertyType, setPropertyType] = useState<PropertyType>(initial?.propertyType ?? "GUEST_HOUSE");
+  const [country, setCountry] = useState(initial?.country || DEFAULT_COUNTRY);
   const [city, setCity] = useState(initial?.city ?? "");
   const [quarter, setQuarter] = useState(initial?.quarter ?? "");
   const [latitude, setLatitude] = useState(initial?.latitude != null ? String(initial.latitude) : "");
@@ -75,7 +77,7 @@ export function PropertyForm({ initial, submitLabel, onSubmit }: Props) {
         propertyType,
         city: city.trim(),
         quarter: quarter.trim(),
-        country: "Cameroun",
+        country,
         latitude: lat,
         longitude: lng,
       });
@@ -113,6 +115,21 @@ export function PropertyForm({ initial, submitLabel, onSubmit }: Props) {
         </select>
       </label>
 
+      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        Pays
+        <select
+          value={country}
+          onChange={(e) => setCountry(e.target.value)}
+          className="rounded-2xl border border-[var(--color-border)] bg-white px-4 py-3.5 text-base text-[var(--color-ink)]"
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <div className="grid grid-cols-2 gap-3">
         <TextField
           placeholder="Ville"
@@ -124,7 +141,7 @@ export function PropertyForm({ initial, submitLabel, onSubmit }: Props) {
         <TextField placeholder="Quartier" value={quarter} onChange={(e) => setQuarter(e.target.value)} required />
       </div>
       <datalist id="city-suggestions">
-        {Object.keys(CITY_COORDS).map((name) => (
+        {citiesOf(country).map(({ name }) => (
           <option key={name} value={name} />
         ))}
       </datalist>

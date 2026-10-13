@@ -102,9 +102,11 @@ export function googleAuthUrl() {
 // ---------------------------------------------------------------------
 
 export type StayTerm = "SEMESTER" | "YEAR";
-export type PropertyType = "HOTEL" | "FURNISHED_APARTMENT" | "STUDENT_ROOM" | "GUEST_HOUSE" | "EVENT_HALL" | "STUDENT_RESIDENCE";
+export type PropertyType = "HOTEL" | "FURNISHED_APARTMENT" | "STUDENT_ROOM" | "GUEST_HOUSE" | "EVENT_HALL" | "STUDENT_RESIDENCE" | "HOSTEL";
 
 export interface SearchRoomsParams {
+  /** Nom du pays (ex. « Gabon »). Absent : tous les pays. */
+  country?: string;
   city?: string;
   quarter?: string;
   checkInDate?: string; // YYYY-MM-DD — à fournir avec checkOutDate
@@ -117,6 +119,10 @@ export interface SearchRoomsParams {
   hasGeneratorOrSolar?: boolean;
   hasAc?: boolean;
   hasParking?: boolean;
+  /** Mode sieste : chambres qui acceptent les siestes (prix = tarif de sieste). */
+  nap?: boolean;
+  /** Mode sieste : ampoule allumée (true) ou éteinte (false). */
+  napBulb?: boolean;
   /** « verified » : logements vérifiés sur place en tête ; défaut : moins cher d'abord. */
   sort?: "price" | "verified";
   page?: number;
@@ -142,6 +148,12 @@ export interface RoomSearchResult {
   /** Résidence étudiante : forfaits (null si non proposé). */
   semesterPrice?: string | number | null;
   yearPrice?: string | number | null;
+  /** Siestes (hôtels et auberges). */
+  allowsNap?: boolean;
+  napPrice?: string | number | null;
+  napHours?: number | null;
+  napBulb?: boolean;
+  equipments?: string[];
   /** Unités libres sur les dates cherchées (ou le total sans dates). */
   unitsLeft?: number;
   photos?: PropertyPhoto[];
@@ -306,15 +318,25 @@ export interface PropertyRoom {
   unitCount: number;
   semesterPrice?: string | number | null;
   yearPrice?: string | number | null;
+  /** Siestes : la chambre en accepte-t-elle, à quel prix, pour combien d'heures, ampoule allumée ? */
+  allowsNap?: boolean;
+  napPrice?: string | number | null;
+  napHours?: number | null;
+  napBulb?: boolean;
+  /** Équipements de la chambre. */
+  equipments?: string[];
   /** Unités encore libres (aujourd'hui, ou sur les dates demandées) — fourni par la fiche publique. */
   unitsLeft?: number;
   photos?: PropertyPhoto[];
 }
 
+/** Option payante d'un logement : salle (sono, traiteur…) ou séjour (navette, petit-déjeuner…). */
 export interface HallOption {
   id: string;
   name: string;
   price: string | number;
+  /** Facturée chaque nuit plutôt qu'une seule fois. */
+  perNight?: boolean;
 }
 
 export type EventSlot = "DAY" | "EVENING" | "FULL";
@@ -383,6 +405,11 @@ export interface BookingDetail {
   stayTerm?: StayTerm | null;
   /** Réservation de groupe : nombre de chambres (1 par défaut). */
   units?: number;
+  /** Sieste : heure de début et durée (null pour un séjour). */
+  napStartHour?: number | null;
+  napHours?: number | null;
+  /** Extras payants choisis (navette, petit-déjeuner…), copie figée. */
+  extras?: { id: string; name: string; price: number; perNight: boolean }[] | null;
   /** Voyageur seulement : un lien de paiement pour un proche est actif. */
   payLinkActive?: boolean;
   eventType?: string | null;
@@ -415,11 +442,15 @@ export interface CreateBookingPayload {
   stayTerm?: StayTerm;
   /** Réservation de groupe : nombre de chambres identiques (défaut 1). */
   units?: number;
+  /** Sieste : séjour de quelques heures le jour d'arrivée, à partir de cette heure (0-23). */
+  nap?: boolean;
+  napStartHour?: number;
+  /** Options payantes cochées (salle de fêtes ou séjour ; pas pour une résidence étudiante). */
+  optionIds?: string[];
   /** Salle de fêtes uniquement. */
   eventType?: string;
   eventSlot?: EventSlot;
   eventGuests?: number;
-  optionIds?: string[];
   /** Prix total proposé pour le séjour ; si absent, le backend applique le tarif affiché. */
   proposedPrice?: number;
   /** Réservation pour une autre personne : son nom (et un téléphone facultatif). */
@@ -444,7 +475,10 @@ export interface BookingReceipt {
   checkOutDate: string;
   nights: number;
   stayTerm?: StayTerm | null;
+  /** Sieste : heure de début et durée (null pour un séjour). */
+  nap?: { startHour: number; hours: number } | null;
   units?: number;
+  extras?: { id: string; name: string; price: number; perNight: boolean }[];
   stayPrice: number;
   travelerFee: number;
   travelerFeePercent: number | null;
@@ -680,6 +714,12 @@ export interface RoomPayload {
   /** Résidence étudiante : forfaits (null = non proposé). */
   semesterPrice?: number | null;
   yearPrice?: number | null;
+  /** Siestes (hôtels et auberges). */
+  allowsNap?: boolean;
+  napPrice?: number | null;
+  napHours?: number | null;
+  napBulb?: boolean;
+  equipments?: string[];
 }
 
 export function listMyProperties() {

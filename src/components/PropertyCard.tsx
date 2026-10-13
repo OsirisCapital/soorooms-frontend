@@ -20,6 +20,8 @@ function colorsFor(id: string) {
 
 type PropertyCardProps = {
   propertyId: string;
+  /** Ouvre la fiche directement en mode sieste. */
+  nap?: boolean;
   title: string;
   subtitle: string;
   priceLabel: string;
@@ -31,7 +33,7 @@ type PropertyCardProps = {
 };
 
 /** Carte d'un logement : photo (ou case colorée), titre, lieu, prix et étoile de favori. */
-export function PropertyCard({ propertyId, title, subtitle, priceLabel, photoUrl, badge, className = "" }: PropertyCardProps) {
+export function PropertyCard({ propertyId, nap = false, title, subtitle, priceLabel, photoUrl, badge, className = "" }: PropertyCardProps) {
   const [from, to] = colorsFor(propertyId);
 
   return (
@@ -39,7 +41,7 @@ export function PropertyCard({ propertyId, title, subtitle, priceLabel, photoUrl
       className={`relative overflow-hidden rounded-3xl shadow-md ${className}`}
       style={{ background: `linear-gradient(160deg, ${from}, ${to})` }}
     >
-      <Link href={`/logements/${propertyId}`} className="absolute inset-0 block">
+      <Link href={`/logements/${propertyId}${nap ? "?nap=1" : ""}`} className="absolute inset-0 block">
         {photoUrl && (
   <PropertyPhoto url={photoUrl} width={600} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
 )}

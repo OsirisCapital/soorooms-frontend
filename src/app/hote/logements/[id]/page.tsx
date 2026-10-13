@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useRef, useState, type ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
+import { EquipmentPicker } from "@/components/EquipmentPicker";
 import { PropertyForm } from "@/components/host/PropertyForm";
 import { RoomForm } from "@/components/host/RoomForm";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +27,7 @@ import {
   type PropertyRoom,
 } from "@/lib/api";
 import { PROPERTY_STATUS_LABEL, PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
+import { canOfferNaps } from "@/lib/rooms";
 import { useAsyncData } from "@/lib/use-async-data";
 import { canEditProperty, ROLE_LABEL } from "@/lib/team-api";
 import { useMe } from "@/lib/use-me";
@@ -75,9 +77,13 @@ export default function ManagePropertyPage() {
                 </Card>
               )}
               <RoomsCard property={property} reload={reload} />
-              {property.propertyType === "EVENT_HALL" && (
+              {property.propertyType !== "STUDENT_RESIDENCE" && (
                 <Card title="Options payantes">
-                  <p className="text-sm text-slate-600">Sono, traiteur, décoration, chaises… proposées au client à la réservation.</p>
+                  <p className="text-sm text-slate-600">
+                    {property.propertyType === "EVENT_HALL"
+                      ? "Sono, traiteur, décoration, chaises… proposées au client à la réservation."
+                      : "Navette aéroport, petit-déjeuner, ménage… proposés au voyageur à la réservation."}
+                  </p>
                   <Link
                     href={`/hote/logements/${property.id}/options`}
                     className="mt-3 block rounded-full border border-[var(--color-teal)] px-5 py-3 text-center text-sm font-semibold text-[var(--color-teal)]"
@@ -256,6 +262,7 @@ function RoomsCard({ property, reload }: CardProps) {
               <RoomForm
                 hall={property.propertyType === "EVENT_HALL"}
                 residence={property.propertyType === "STUDENT_RESIDENCE"}
+                napCapable={canOfferNaps(property.propertyType)}
                 initial={room}
                 submitLabel="Enregistrer"
                 onCancel={() => setMode("idle")}
@@ -314,6 +321,7 @@ function RoomsCard({ property, reload }: CardProps) {
           <RoomForm
             hall={property.propertyType === "EVENT_HALL"}
             residence={property.propertyType === "STUDENT_RESIDENCE"}
+                napCapable={canOfferNaps(property.propertyType)}
             submitLabel={property.propertyType === "EVENT_HALL" ? "Ajouter la salle" : "Ajouter la chambre"}
             requirePhotos
             onCancel={() => setMode("idle")}
@@ -426,6 +434,20 @@ const AMENITY_FIELDS = [
   { key: "hasParking", label: "Parking" },
 ] as const;
 
+const PROPERTY_EQUIPMENT_SUGGESTIONS = [
+  "Piscine",
+  "Jardin",
+  "Terrasse",
+  "Restaurant",
+  "Bar",
+  "Réception 24h/24",
+  "Sécurité 24h/24",
+  "Ascenseur",
+  "Cuisine équipée",
+  "Blanchisserie",
+  "Salle de sport",
+];
+
 function AmenitiesCard({ property, reload }: CardProps) {
   const initial = property.amenities;
   const [flags, setFlags] = useState({
@@ -434,7 +456,7 @@ function AmenitiesCard({ property, reload }: CardProps) {
     hasAc: initial?.hasAc ?? false,
     hasParking: initial?.hasParking ?? false,
   });
-  const [extras, setExtras] = useState((initial?.additionalEquipments ?? []).join(", "));
+  const [extras, setExtras] = useState<string[]>(initial?.additionalEquipments ?? []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
@@ -444,10 +466,7 @@ function AmenitiesCard({ property, reload }: CardProps) {
     try {
       await updateAmenities(property.id, {
         ...flags,
-        additionalEquipments: extras
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        additionalEquipments: extras,
       });
       await reload();
       setMessage({ text: "Équipements enregistrés.", ok: true });
@@ -473,15 +492,9 @@ function AmenitiesCard({ property, reload }: CardProps) {
           </label>
         ))}
       </div>
-      <label className="mt-4 flex flex-col gap-1 text-xs font-medium text-slate-500">
-        Autres équipements (séparés par des virgules)
-        <input
-          value={extras}
-          onChange={(e) => setExtras(e.target.value)}
-          placeholder="Piscine, Jardin, Cuisine équipée"
-          className="rounded-xl border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-ink)]"
-        />
-      </label>
+      <div className="mt-4">
+        <EquipmentPicker value={extras} onChange={setExtras} suggestions={PROPERTY_EQUIPMENT_SUGGESTIONS} label="Autres équipements de l'établissement" />
+      </div>
       {message && <p className={`mt-3 text-sm ${message.ok ? "text-[var(--color-teal-600)]" : "text-red-500"}`}>{message.text}</p>}
       <div className="mt-4">
         <Button variant="outline" onClick={save} loading={busy}>

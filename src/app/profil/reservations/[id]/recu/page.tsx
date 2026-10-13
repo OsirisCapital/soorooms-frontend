@@ -84,11 +84,23 @@ export default function ReceiptPage() {
               <dd className="text-right text-[var(--color-ink)]">{receipt.roomName}{receipt.units && receipt.units > 1 ? ` × ${receipt.units}` : ""}</dd>
               <dt className="text-slate-500">Séjour</dt>
               <dd className="text-right text-[var(--color-ink)]">
-                {formatDay(receipt.checkInDate)} → {formatDay(receipt.checkOutDate)}
+                {receipt.nap ? formatDay(receipt.checkInDate) : `${formatDay(receipt.checkInDate)} → ${formatDay(receipt.checkOutDate)}`}
                 <span className="block text-xs text-slate-500">
-                  {receipt.stayTerm ? (STAY_TERM_LABEL[receipt.stayTerm] ?? receipt.stayTerm) : `${receipt.nights} nuit${receipt.nights > 1 ? "s" : ""}`}
+                  {receipt.nap ? `Sieste de ${receipt.nap.hours} h : ${receipt.nap.startHour} h – ${receipt.nap.startHour + receipt.nap.hours} h` : receipt.stayTerm ? (STAY_TERM_LABEL[receipt.stayTerm] ?? receipt.stayTerm) : `${receipt.nights} nuit${receipt.nights > 1 ? "s" : ""}`}
                 </span>
               </dd>
+              {receipt.extras && receipt.extras.length > 0 && (
+                <>
+                  <dt className="text-slate-500">Options</dt>
+                  <dd className="text-right text-[var(--color-ink)]">
+                    {receipt.extras.map((o) => (
+                      <span key={o.id} className="block text-xs">
+                        {o.name}{o.perNight ? " (par nuit)" : ""}
+                      </span>
+                    ))}
+                  </dd>
+                </>
+              )}
               <dt className="text-slate-500">Paiement</dt>
               <dd className="text-right text-[var(--color-ink)]">{PAYMENT_METHOD_LABEL[receipt.paymentMethod] ?? receipt.paymentMethod}</dd>
             </dl>

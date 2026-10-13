@@ -7,7 +7,9 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { Button } from "@/components/ui/Button";
 import type { PropertyType, SearchRoomsParams } from "@/lib/api";
 import { PROPERTY_TYPE_LABEL } from "@/lib/booking-labels";
-import { dedupeByProperty, formatRoomPrice } from "@/lib/rooms";
+import { COUNTRIES } from "@/lib/countries";
+import { NapBulb } from "@/components/NapBulb";
+import { dedupeByProperty, formatNapPrice, formatRoomPrice } from "@/lib/rooms";
 import { useExplorerSearch } from "@/lib/use-explorer-search";
 
 type AmenityKey = "hasWifi" | "hasAc" | "hasParking" | "hasGeneratorOrSolar";
@@ -53,6 +55,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 function Explorer() {
   // Les filtres venant de la barre de recherche de l'accueil servent de valeurs de départ.
   const initial = useSearchParams();
+  const [country, setCountry] = useState(initial.get("country") ?? "");
   const [city, setCity] = useState(initial.get("city") ?? "");
   const [checkIn, setCheckIn] = useState(initial.get("checkInDate") ?? "");
   const [checkOut, setCheckOut] = useState(initial.get("checkOutDate") ?? "");
@@ -60,9 +63,13 @@ function Explorer() {
   const [type, setType] = useState<PropertyType | undefined>(undefined);
   const [amenities, setAmenities] = useState<AmenityKey[]>([]);
   const [verifiedFirst, setVerifiedFirst] = useState(false);
+  // Mode sieste : chambres qui acceptent les siestes, avec ampoule allumée / éteinte au choix (aucun choix = les deux).
+  const [nap, setNap] = useState(false);
+  const [bulb, setBulb] = useState<boolean | undefined>(undefined);
 
   // Les filtres ne s'appliquent qu'au clic sur « Rechercher » ; les puces, elles, agissent tout de suite.
-  const [applied, setApplied] = useState<{ city: string; checkIn: string; checkOut: string; guests: string }>({
+  const [applied, setApplied] = useState<{ country: string; city: string; checkIn: string; checkOut: string; guests: string }>({
+    country,
     city,
     checkIn,
     checkOut,
@@ -72,6 +79,7 @@ function Explorer() {
   const today = new Date().toISOString().slice(0, 10);
 
   const params: SearchRoomsParams = {
+    country: applied.country || undefined,
     city: applied.city.trim() || undefined,
     // Les dates ne comptent que par paire, comme l'exige le backend.
     checkInDate: applied.checkIn && applied.checkOut ? applied.checkIn : undefined,
@@ -79,15 +87,16 @@ function Explorer() {
     maxGuests: applied.guests ? Number(applied.guests) : undefined,
     propertyType: type,
     sort: verifiedFirst ? "verified" : undefined,
+    ...(nap ? { nap: true, napBulb: bulb } : {}),
     ...Object.fromEntries(amenities.map((key) => [key, true])),
   };
 
   const { rooms, loading, failed, hasMore, loadingMore, loadMore } = useExplorerSearch(params);
-  const cards = dedupeByProperty(rooms);
+  const cards = dedupeByProperty(rooms, nap);
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    setApplied({ city, checkIn, checkOut, guests });
+    setApplied({ country, city, checkIn, checkOut, guests });
   }
 
   const toggleAmenity = (key: AmenityKey) =>
@@ -96,6 +105,14 @@ function Explorer() {
   return (
     <>
       <form onSubmit={submit} className="rounded-2xl bg-white p-3 shadow-md">
+        <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label="Pays" className={`${INPUT} mb-2 w-full`}>
+          <option value="">Tous les pays</option>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+        </select>
         <input
           value={city}
           onChange={(e) => setCity(e.target.value)}
@@ -103,6 +120,9 @@ function Explorer() {
           aria-label="Destination"
           className={`${INPUT} w-full`}
         />
+        {nap ? (
+          <p className="mt-2 text-xs text-slate-500">Siestes : choisissez le jour et l&apos;heure sur la fiche du logement.</p>
+        ) : (
         <div className="mt-2 grid grid-cols-2 gap-2">
           <label className="flex flex-col gap-1 text-xs text-slate-500">
             Du
@@ -122,6 +142,7 @@ function Explorer() {
             <input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={INPUT} />
           </label>
         </div>
+        )}
         <div className="mt-2 flex gap-2">
           <select
             value={guests}
@@ -153,6 +174,29 @@ function Explorer() {
         ))}
       </div>
       <div className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5">
+        <Chip
+          active={nap}
+          onClick={() => {
+            setNap(!nap);
+            setBulb(undefined);
+          }}
+        >
+          Sieste
+        </Chip>
+        {nap && (
+          <>
+            <Chip active={bulb === true} onClick={() => setBulb(bulb === true ? undefined : true)}>
+              <span className="inline-flex items-center gap-1.5">
+                <NapBulb on size={16} /> Ampoule allumée
+              </span>
+            </Chip>
+            <Chip active={bulb === false} onClick={() => setBulb(bulb === false ? undefined : false)}>
+              <span className="inline-flex items-center gap-1.5">
+                <NapBulb on={false} size={16} /> Ampoule éteinte
+              </span>
+            </Chip>
+          </>
+        )}
         <Chip active={verifiedFirst} onClick={() => setVerifiedFirst(!verifiedFirst)}>
           ✓ Vérifiés d&apos;abord
         </Chip>
@@ -192,7 +236,8 @@ function Explorer() {
                   propertyId={room.propertyId}
                   title={room.property.title}
                   subtitle={`${room.property.city} · ${room.property.quarter}`}
-                  priceLabel={formatRoomPrice(room, room.property.propertyType)}
+                  priceLabel={nap ? formatNapPrice(room) : formatRoomPrice(room, room.property.propertyType)}
+                  nap={nap}
                   photoUrl={room.property.photos?.[0]?.url}
                   badge={room.property.isVerifiedByAgent ? "Vérifié par SòôRooms" : room.property.identityVerified ? "Identité vérifiée" : undefined}
                   className="h-56"

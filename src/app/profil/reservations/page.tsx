@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { getMyBookings } from "@/lib/api";
-import { BOOKING_STATUS_LABEL, formatDay, formatFcfa } from "@/lib/booking-labels";
+import { BOOKING_STATUS_LABEL, formatFcfa, formatWhen } from "@/lib/booking-labels";
 import { useAsyncData } from "@/lib/use-async-data";
 
 export default function ReservationsPage() {
@@ -31,7 +31,7 @@ export default function ReservationsPage() {
                 </span>
               </div>
               <p className="mt-2 text-sm text-slate-600">
-                {formatDay(booking.checkInDate)} → {formatDay(booking.checkOutDate)}
+                {formatWhen(booking)}
               </p>
               <p className="mt-1 text-sm font-semibold text-[var(--color-ink)]">
                 {booking.totalPrice != null ? formatFcfa(booking.totalPrice) : "Prix en cours de négociation"}
