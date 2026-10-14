@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { PwaRegister } from "@/components/PwaRegister";
+import { ReferralClaimer } from "@/components/ReferralClaimer";
 import "./globals.css";
 import { UpdateGate } from "@/components/UpdateGate";
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-cream text-ink antialiased">
         <PwaRegister />
         <UpdateGate />
+        <ReferralClaimer />
         {children}
       </body>
     </html>

@@ -73,6 +73,11 @@ export default function ParametresPage() {
   </Link>
 )}
 
+      <Link href="/profil/partenaire" className="mt-4 block rounded-3xl bg-white p-5 shadow-sm">
+        <h2 className="font-display text-lg font-semibold text-[var(--color-teal)]">Compte partenaire</h2>
+        <p className="mt-1 text-sm text-slate-600">Parrainez des hôtes et des voyageurs avec votre lien et gagnez une part du revenu de SòôRooms.</p>
+      </Link>
+
       <p className="mt-6 text-sm text-slate-500">
         Langue, notifications et sécurité du compte arriveront dans une prochaine version.{" "}
         <Link href="/profil/aide" className="font-semibold text-[var(--color-teal)]">

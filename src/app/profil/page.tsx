@@ -16,6 +16,7 @@ const MENU: { href: string; label: string; icon: IconName }[] = [
   { href: "/profil/paiements", label: "Mes paiements", icon: "card" },
   { href: "/profil/points", label: "Mes points", icon: "star" },
   { href: "/profil/avis", label: "Mes avis", icon: "star" },
+  { href: "/profil/partenaire", label: "Programme partenaire", icon: "user" },
   { href: "/profil/parametres", label: "Paramètres", icon: "settings" },
   { href: "/profil/aide", label: "Aide et support", icon: "help" },
 ];

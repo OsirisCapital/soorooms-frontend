@@ -18,7 +18,8 @@ export type Permission =
   | "audit.view"
   | "settings.manage"
   | "visits.manage"
-  | "visits.perform";
+  | "visits.perform"
+  | "partners.manage";
 
 export type StaffRole = "SUPER_ADMIN" | "KYC_REVIEWER" | "SUPPORT" | "FINANCE" | "CONTENT" | "FIELD_AGENT";
 
@@ -162,6 +163,7 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   "settings.manage": "Commissions et frais",
   "visits.manage": "Visites de vérification (file et agents)",
   "visits.perform": "Réaliser des visites de vérification",
+  "partners.manage": "Programme partenaire (partenaires, réglages, retraits)",
 };
 
 export interface StaffMember {
