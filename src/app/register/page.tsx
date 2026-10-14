@@ -55,6 +55,21 @@ export default function RegisterPage() {
           <GoogleIcon />
           Continuer avec Google
         </a>
+        <p className="mt-2 text-center text-xs text-slate-500">
+          En continuant avec Google, vous acceptez les{" "}
+          <Link href="/conditions" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+            Conditions d&apos;utilisation
+          </Link>
+          , la{" "}
+          <Link href="/confidentialite" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+            Politique de confidentialité
+          </Link>{" "}
+          et la{" "}
+          <Link href="/remboursement" target="_blank" className="font-medium text-[var(--color-teal)] underline">
+            Politique de remboursement
+          </Link>
+          .
+        </p>
 
         <div className="my-6 flex items-center gap-3 text-slate-400">
           <span className="h-px flex-1 bg-[var(--color-border)]" />

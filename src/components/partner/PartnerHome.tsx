@@ -66,8 +66,21 @@ function Activate({ me, onDone }: { me: PartnerMe; onDone: (next: PartnerMe) => 
         Recommandez SòôRooms à des hôtes et à des voyageurs avec votre lien personnel, et gagnez de l&apos;argent à chaque réservation qu&apos;ils font.
       </p>
       <Rates config={me.config} />
+      {me.blockedReason === "STAFF" && (
+        <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
+          Les membres de l&apos;équipe SòôRooms ne peuvent pas devenir partenaires : vous vérifiez et suivez des comptes et des réservations, ce qui créerait un conflit d&apos;intérêts. Vous pouvez en revanche lire le règlement ci-dessous.
+        </p>
+      )}
+      {me.blockedReason === "CLOSED" && <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">Le programme est momentanément fermé aux nouvelles inscriptions.</p>}
+      <p className="mt-4 text-sm text-slate-700">
+        📖{" "}
+        <Link href="/programme-partenaire" target="_blank" className="font-semibold text-[var(--color-terracotta)] underline">
+          Lire le règlement complet du programme
+        </Link>{" "}
+        (qui peut être partenaire, commissions, retrait, exclusions) avant de vous décider.
+      </p>
       <div className="mt-4 rounded-2xl bg-[var(--color-cream)] p-4">
-        <p className="text-sm font-semibold text-[var(--color-ink)]">Conditions du programme</p>
+        <p className="text-sm font-semibold text-[var(--color-ink)]">En résumé</p>
         <ul className="mt-2 list-disc space-y-1.5 pl-5 text-xs text-slate-600">
           {me.terms.map((term) => (
             <li key={term}>{term}</li>
@@ -76,10 +89,20 @@ function Activate({ me, onDone }: { me: PartnerMe; onDone: (next: PartnerMe) => 
       </div>
       <label className="mt-4 flex items-start gap-3 text-sm text-[var(--color-ink)]">
         <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
-        <span>J&apos;ai lu et j&apos;accepte les conditions du programme partenaire.</span>
+        <span>
+          J&apos;ai lu et j&apos;accepte le{" "}
+          <Link href="/programme-partenaire" target="_blank" className="font-semibold text-[var(--color-teal)] underline">
+            règlement du programme partenaire
+          </Link>{" "}
+          et la{" "}
+          <Link href="/confidentialite" target="_blank" className="font-semibold text-[var(--color-teal)] underline">
+            politique de confidentialité
+          </Link>
+          .
+        </span>
       </label>
       {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-      <Button className="mt-4" disabled={!accepted} loading={busy} onClick={activate}>
+      <Button className="mt-4" disabled={!accepted || !me.canActivate} loading={busy} onClick={activate}>
         Activer mon compte partenaire
       </Button>
     </section>
@@ -388,9 +411,20 @@ function Dashboard({ me, partner, onChange }: { me: PartnerMe; partner: PartnerA
           Votre compte partenaire est suspendu{partner.suspendedReason ? ` : ${partner.suspendedReason}` : "."} Contactez le support.
         </p>
       )}
+      {partner.earningBlockedReason === "STAFF" && (
+        <p className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
+          Vous faites partie de l&apos;équipe SòôRooms : vos commissions sont suspendues tant que c&apos;est le cas, pour éviter tout conflit d&apos;intérêts. Vos gains déjà acquis restent retirables, et les commissions reprennent si vous quittez l&apos;équipe.
+        </p>
+      )}
       {partner.needsTerms && (
         <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900">
-          <p>Les conditions du programme ont changé. Relisez-les ci-dessous puis acceptez-les pour continuer.</p>
+          <p>
+            Le règlement du programme a changé. Relisez-le (
+            <Link href="/programme-partenaire" target="_blank" className="font-semibold underline">
+              règlement complet
+            </Link>
+            ) puis acceptez-le pour continuer.
+          </p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs">
             {me.terms.map((t) => (
               <li key={t}>{t}</li>
@@ -423,7 +457,6 @@ export function PartnerHome() {
 
   if (loading) return <div className="h-64 animate-pulse rounded-3xl bg-[var(--color-cream-soft)]" />;
   if (error || !me) return <p className="text-sm text-red-500">{error ?? "Impossible de charger le programme partenaire."}</p>;
-  if (!me.config.enabled && !me.partner) return <p className={`${card} text-sm text-slate-600`}>Le programme partenaire est momentanément fermé.</p>;
   if (!me.partner) return <Activate me={me} onDone={setFresh} />;
   return <Dashboard me={me} partner={me.partner} onChange={setFresh} />;
 }

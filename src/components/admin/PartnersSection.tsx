@@ -196,7 +196,9 @@ function PartnerList() {
                     {p.phone} · code {p.code}
                   </p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>{status === "ACTIVE" ? "Actif" : "Suspendu"}</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status !== "ACTIVE" ? "bg-red-100 text-red-700" : p.isStaff ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                  {status !== "ACTIVE" ? "Suspendu" : p.isStaff ? "Équipe : commissions suspendues" : "Actif"}
+                </span>
               </div>
               <p className="mt-2 text-sm text-[var(--color-ink)]">
                 {p.referrals} filleul{p.referrals > 1 ? "s" : ""} · gagné {formatFcfa(p.earned)} · disponible {formatFcfa(p.available)}

@@ -2,6 +2,9 @@
 
 export type CardFormat = "story" | "post";
 
+/** Ce que la carte met en avant : le séjour (à la nuit), la sieste, ou les deux. */
+export type CardMode = "stay" | "nap" | "both";
+
 export const CARD_SIZE: Record<CardFormat, { width: number; height: number; label: string }> = {
   story: { width: 1080, height: 1920, label: "Story (WhatsApp, Facebook, Instagram)" },
   post: { width: 1080, height: 1350, label: "Publication (4:5)" },
@@ -13,6 +16,11 @@ export interface CardContent {
   quarter: string;
   /** Prix de la chambre la moins chère, par nuit ; null si aucune chambre. */
   fromPrice: number | null;
+  mode: CardMode;
+  /** Sieste la moins chère (FCFA), sa durée en heures, et ampoule allumée dans au moins une chambre à siestes. */
+  napFromPrice: number | null;
+  napHours: number | null;
+  napBulb: boolean;
   verified: boolean;
   qrDataUrl: string | null;
   photo: HTMLImageElement | null;
@@ -76,6 +84,24 @@ function fitFont(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, 
     size -= 2;
     ctx.font = `${weight} ${size}px ${family}`;
   }
+}
+
+/** Ampoule allumée, dessinée comme NapBulb (viewBox 24) : rayons ambre et verre jaune. */
+function drawBulb(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 24, size / 24);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = "#f59e0b";
+  ctx.stroke(new Path2D("M12 1.5v1.8M4.2 4.7l1.3 1.3M19.8 4.7 18.5 6M1.8 11.5h1.8M20.4 11.5h1.8"));
+  const glass = new Path2D("M9 18h6M10 21h4M12 4.5a5.5 5.5 0 0 0-3.4 9.8c.6.5.9 1.1.9 1.7V16h5v-.0c0-.6.3-1.2.9-1.7A5.5 5.5 0 0 0 12 4.5Z");
+  ctx.fillStyle = "#fde68a";
+  ctx.fill(glass);
+  ctx.strokeStyle = "#d97706";
+  ctx.stroke(glass);
+  ctx.restore();
 }
 
 const fcfa = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} FCFA`;
@@ -153,12 +179,28 @@ export async function drawCard(canvas: HTMLCanvasElement, format: CardFormat, co
   ctx.fillStyle = "rgba(255,255,255,0.8)";
   ctx.fillText(content.link.replace(/^https?:\/\//, ""), margin, baseY);
 
-  if (content.fromPrice != null) {
-    ctx.fillStyle = "#ffd9a8";
-    const priceText = `dès ${fcfa(content.fromPrice)} / nuit`;
-    fitFont(ctx, priceText, textWidth, format === "story" ? 64 : 56, 700, sans);
-    ctx.fillText(priceText, margin, baseY - 70);
-    y = baseY - 70 - (format === "story" ? 100 : 90);
+  // Lignes de prix, du bas vers le haut : le séjour, puis la sieste (avec l'ampoule si elle est allumée).
+  const priceLines: { text: string; bulb: boolean }[] = [];
+  if (content.mode !== "nap" && content.fromPrice != null) priceLines.push({ text: `dès ${fcfa(content.fromPrice)} / nuit`, bulb: false });
+  if (content.mode !== "stay" && content.napFromPrice != null) {
+    const hours = content.napHours ? ` · ${content.napHours} h` : "";
+    priceLines.push({ text: `Sieste dès ${fcfa(content.napFromPrice)}${hours}`, bulb: content.napBulb });
+  }
+  if (priceLines.length > 0) {
+    const gap = format === "story" ? 84 : 74;
+    const fontStart = priceLines.length > 1 ? (format === "story" ? 56 : 50) : format === "story" ? 64 : 56;
+    priceLines.forEach((line, i) => {
+      const lineY = baseY - 70 - i * gap;
+      const bulbSize = fontStart * 1.15;
+      ctx.fillStyle = "#ffd9a8";
+      fitFont(ctx, line.text, textWidth - (line.bulb ? bulbSize + 18 : 0), fontStart, 700, sans);
+      ctx.fillText(line.text, margin, lineY);
+      if (line.bulb) {
+        const tw = ctx.measureText(line.text).width;
+        drawBulb(ctx, margin + tw + 18, lineY - bulbSize * 0.86, bulbSize);
+      }
+    });
+    y = baseY - 70 - (priceLines.length - 1) * (format === "story" ? 84 : 74) - (format === "story" ? 100 : 90);
   } else {
     y = baseY - 100;
   }

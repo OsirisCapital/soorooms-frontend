@@ -4,10 +4,11 @@ import { useParams } from "next/navigation";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { NapBulb } from "@/components/NapBulb";
 import { Button } from "@/components/ui/Button";
 import { getMyProperty } from "@/lib/api";
 import { formatFcfa } from "@/lib/booking-labels";
-import { canvasToBlob, CARD_SIZE, drawCard, loadImage, type CardFormat } from "@/lib/share-card";
+import { canvasToBlob, CARD_SIZE, drawCard, loadImage, type CardFormat, type CardMode } from "@/lib/share-card";
 import { useAsyncData } from "@/lib/use-async-data";
 
 const SITE = "https://www.soorooms.com";
@@ -17,6 +18,7 @@ export default function SharePage() {
   const { data: property, loading, error } = useAsyncData(`share-${id}`, () => getMyProperty(id));
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [format, setFormat] = useState<CardFormat>("story");
+  const [chosenMode, setChosenMode] = useState<CardMode>("stay");
   const [photoIndex, setPhotoIndex] = useState(0);
   const [qr, setQr] = useState<string | null>(null);
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -34,6 +36,15 @@ export default function SharePage() {
     if (!property || property.rooms.length === 0) return null;
     return Math.min(...property.rooms.map((r) => Number(r.basePrice)));
   }, [property]);
+
+  // Siestes : chambres qui en acceptent, avec un prix. La carte « sieste » n'existe que s'il y en a.
+  const nap = useMemo(() => {
+    const rooms = (property?.rooms ?? []).filter((r) => r.allowsNap && r.napPrice != null && Number(r.napPrice) > 0);
+    if (rooms.length === 0) return null;
+    const cheapest = rooms.reduce((a, b) => (Number(b.napPrice) < Number(a.napPrice) ? b : a));
+    return { price: Number(cheapest.napPrice), hours: cheapest.napHours ?? null, bulb: rooms.some((r) => r.napBulb) };
+  }, [property]);
+  const mode: CardMode = nap ? chosenMode : "stay";
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +80,10 @@ export default function SharePage() {
         city: property.city,
         quarter: property.quarter,
         fromPrice,
+        mode,
+        napFromPrice: nap?.price ?? null,
+        napHours: nap?.hours ?? null,
+        napBulb: nap?.bulb ?? false,
         verified: Boolean(property.isVerifiedByAgent),
         qrDataUrl: qr,
         photo,
@@ -78,10 +93,14 @@ export default function SharePage() {
     return () => {
       cancelled = true;
     };
-  }, [property, photos, photoIndex, format, qr, fromPrice, link]);
+  }, [property, photos, photoIndex, format, qr, fromPrice, link, mode, nap]);
 
+  const priceParts = [
+    mode !== "nap" && fromPrice != null ? `dès ${formatFcfa(fromPrice)} / nuit` : null,
+    mode !== "stay" && nap ? `sieste dès ${formatFcfa(nap.price)}${nap.hours ? ` (${nap.hours} h)` : ""}${nap.bulb ? " 💡" : ""}` : null,
+  ].filter(Boolean);
   const caption = property
-    ? `${property.title} — ${property.city}, ${property.quarter}${fromPrice != null ? ` · dès ${formatFcfa(fromPrice)} / nuit` : ""}. Réservez en ligne avec paiement Mobile Money sécurisé : ${link}`
+    ? `${property.title} — ${property.city}, ${property.quarter}${priceParts.length ? ` · ${priceParts.join(" · ")}` : ""}. Réservez en ligne avec paiement Mobile Money sécurisé : ${link}`
     : link;
 
   async function share() {
@@ -89,7 +108,7 @@ export default function SharePage() {
     if (!canvasRef.current) return;
     try {
       const blob = await canvasToBlob(canvasRef.current);
-      const file = new File([blob], `soorooms-${id}-${format}.png`, { type: "image/png" });
+      const file = new File([blob], `soorooms-${id}-${mode}-${format}.png`, { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], text: caption });
         return;
@@ -109,7 +128,7 @@ export default function SharePage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `soorooms-${id}-${format}.png`;
+      a.download = `soorooms-${id}-${mode}-${format}.png`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -143,6 +162,36 @@ export default function SharePage() {
             <p className="rounded-2xl bg-white p-4 text-sm text-[var(--color-terracotta-dark)] shadow-sm">
               Ce logement n&apos;est pas encore publié : le lien ne fonctionnera qu&apos;après la publication.
             </p>
+          )}
+
+          {nap && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-[var(--color-ink)]">Mettre en avant</p>
+              <div className="flex gap-2">
+                {([
+                  ["stay", "Le séjour"],
+                  ["nap", "La sieste"],
+                  ["both", "Les deux"],
+                ] as const).map(([m, label]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setChosenMode(m)}
+                    aria-pressed={mode === m}
+                    className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold ${
+                      mode === m ? "bg-[var(--color-teal)] text-white" : "border border-[var(--color-border)] bg-white text-[var(--color-ink)]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {mode !== "stay" && (
+                <p className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                  <NapBulb on={nap.bulb} size={16} /> {nap.bulb ? "L'ampoule allumée apparaît sur la carte." : "Ampoule éteinte : elle n'apparaît pas sur la carte."}
+                </p>
+              )}
+            </div>
           )}
 
           <div className="flex gap-2">

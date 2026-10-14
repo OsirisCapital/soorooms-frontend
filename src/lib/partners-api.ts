@@ -17,6 +17,9 @@ export interface PartnerConfig {
 }
 
 export interface PartnerAccount {
+  /** Faux quand les commissions sont suspendues (membre de l'équipe, compte suspendu, programme fermé). */
+  earning: boolean;
+  earningBlockedReason: "STAFF" | "SUSPENDED" | "CLOSED" | null;
   code: string;
   status: "ACTIVE" | "SUSPENDED";
   suspendedReason: string | null;
@@ -35,6 +38,9 @@ export interface PartnerAccount {
 export interface PartnerMe {
   config: PartnerConfig;
   terms: string[];
+  /** Faux pour un membre de l'équipe (ou quand le programme est fermé). */
+  canActivate: boolean;
+  blockedReason: "STAFF" | "CLOSED" | null;
   partner: PartnerAccount | null;
 }
 
@@ -99,6 +105,7 @@ export interface AdminPartnerRow {
   fullName: string;
   phone: string;
   kycStatus: KycStatus;
+  isStaff: boolean;
   userId: string;
   referrals: number;
   earned: number;
